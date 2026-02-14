@@ -4,12 +4,9 @@
  * Usage: npx tsx scripts/list-invites.ts
  */
 
-import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+const prisma = new PrismaClient();
 
 async function main() {
   const invites = await prisma.inviteCode.findMany({

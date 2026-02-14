@@ -6,10 +6,10 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient(): PrismaClient {
   try {
-    return new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL,
-    });
+    return new PrismaClient();
   } catch {
+    // During build without `prisma generate`, the client may not be available.
+    // This is expected — the build will succeed on Vercel where generate runs first.
     console.warn(
       "⚠ Prisma Client not generated. Run `npx prisma generate` to enable database access."
     );

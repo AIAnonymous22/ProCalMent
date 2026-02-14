@@ -10,13 +10,10 @@
  *   npx tsx scripts/generate-invite.ts 3 --days 7  # 3 codes, 7-day expiry
  */
 
-import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+const prisma = new PrismaClient();
 
 async function main() {
   const args = process.argv.slice(2);
