@@ -4,19 +4,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function createPrismaClient(): PrismaClient {
-  try {
-    return new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL,
-    });
-  } catch {
-    console.warn(
-      "⚠ Prisma Client not generated. Run `npx prisma generate` to enable database access."
-    );
-    return {} as PrismaClient;
-  }
-}
-
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL,
+  });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
