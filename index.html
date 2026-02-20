@@ -48,14 +48,22 @@ const SUPABASE_URL = 'https://yccjzybfaucjflilzpla.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_9MSp4q8-nwZSFwDXEsP7PQ_vhAp8CBd';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-
 const CATEGORIES = {
-  MEETING: { label: 'Meeting', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  DEADLINE: { label: 'Deadline', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-  REVIEW: { label: 'Review', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
-  SOCIAL: { label: 'Social', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
-  OTHER: { label: 'Other', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  MEETING:  { label: 'Meeting',  color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  DEADLINE: { label: 'Deadline', color: '#ef4444', bg: 'rgba(239,68,68,0.15)'  },
+  REVIEW:   { label: 'Review',   color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
+  SOCIAL:   { label: 'Social',   color: '#22c55e', bg: 'rgba(34,197,94,0.15)'  },
+  OTHER:    { label: 'Other',    color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
 };
+
+const TASK_STATUSES = {
+  TODO:        { label: 'To Do',       color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+  IN_PROGRESS: { label: 'In Progress', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)'  },
+  DONE:        { label: 'Done',        color: '#22c55e', bg: 'rgba(34,197,94,0.15)'   },
+  BLOCKED:     { label: 'Blocked',     color: '#ef4444', bg: 'rgba(239,68,68,0.15)'   },
+};
+
+const MEMBER_COLORS = ['#3b82f6','#8b5cf6','#06b6d4','#22c55e','#f59e0b','#ef4444','#ec4899'];
 
 /* ── Icons ── */
 const Icon = ({ d, size = 20, color = 'currentColor' }) => (
@@ -63,241 +71,156 @@ const Icon = ({ d, size = 20, color = 'currentColor' }) => (
 );
 const Icons = {
   dashboard: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
-  calendar: 'M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z M16 2v4 M8 2v4 M3 10h18',
-  plus: 'M12 5v14 M5 12h14',
-  x: 'M18 6L6 18 M6 6l12 12',
-  chevLeft: 'M15 18l-6-6 6-6',
+  calendar:  'M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z M16 2v4 M8 2v4 M3 10h18',
+  tasks:     'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  plus:      'M12 5v14 M5 12h14',
+  x:         'M18 6L6 18 M6 6l12 12',
+  chevLeft:  'M15 18l-6-6 6-6',
   chevRight: 'M9 18l6-6-6-6',
-  clock: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6v6l4 2',
-  mapPin: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
-  users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
-  lock: 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4',
-  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
-  trend: 'M23 6l-9.5 9.5-5-5L1 18',
-  check: 'M20 6L9 17l-5-5',
-  alert: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
-  refresh: 'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
-  edit: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
-  upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+  clock:     'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6v6l4 2',
+  mapPin:    'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
+  users:     'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+  lock:      'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4',
+  logout:    'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+  trend:     'M23 6l-9.5 9.5-5-5L1 18',
+  check:     'M20 6L9 17l-5-5',
+  alert:     'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
+  refresh:   'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
+  edit:      'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
+  upload:    'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+  circle:    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
 };
 
-/* ── iCal (.ics) Parser ── */
+/* ── iCal Parser ── */
 function parseICS(text) {
   const events = [];
-  // Split into VEVENT blocks
   const blocks = text.split('BEGIN:VEVENT');
-  blocks.shift(); // remove preamble before first VEVENT
-
+  blocks.shift();
   for (const block of blocks) {
     const get = (key) => {
-      // Match key or key;PARAM=...: value, handle folded lines (lines starting with space)
       const unfold = block.replace(/\r?\n[ \t]/g, '');
       const match = unfold.match(new RegExp(`(?:^|\\n)${key}(?:;[^:]*)?:([^\\n]*)`, 'i'));
       return match ? match[1].trim() : '';
     };
-
     const rawStart = get('DTSTART');
-    const rawEnd = get('DTEND');
-    const summary = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ').replace(/\\/g, '');
-    const description = get('DESCRIPTION').replace(/\\,/g, ',').replace(/\\n/g, '\n').replace(/\\/g, '');
-    const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\/g, '');
-
+    const rawEnd   = get('DTEND');
+    const summary  = get('SUMMARY').replace(/\\,/g,',').replace(/\\n/g,' ').replace(/\\/g,'');
+    const description = get('DESCRIPTION').replace(/\\,/g,',').replace(/\\n/g,'\n').replace(/\\/g,'');
+    const location = get('LOCATION').replace(/\\,/g,',').replace(/\\/g,'');
     if (!rawStart || !summary) continue;
-
-    // Parse date: handles YYYYMMDD and YYYYMMDDTHHmmssZ
     const parseDate = (raw) => {
-      const d = raw.replace(/[TZ]/g, '').replace(/[^0-9]/g, '');
-      if (d.length < 8) return { date: '', time: '' };
+      const d = raw.replace(/[TZ]/g,'').replace(/[^0-9]/g,'');
+      if (d.length < 8) return { date:'', time:'' };
       const date = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
       const time = d.length >= 12 ? `${d.slice(8,10)}:${d.slice(10,12)}` : '';
       return { date, time };
     };
-
     const start = parseDate(rawStart);
-    const end = rawEnd ? parseDate(rawEnd) : { date: '', time: '' };
-
+    const end   = rawEnd ? parseDate(rawEnd) : { date:'', time:'' };
     if (!start.date) continue;
-
-    // Guess category from summary keywords
-    const titleLower = summary.toLowerCase();
+    const tl = summary.toLowerCase();
     let category = 'OTHER';
-    if (/meeting|sync|standup|call|interview|1:1|one.on.one/.test(titleLower)) category = 'MEETING';
-    else if (/deadline|due|submit|submission/.test(titleLower)) category = 'DEADLINE';
-    else if (/review|feedback|assessment|evaluation/.test(titleLower)) category = 'REVIEW';
-    else if (/lunch|social|team.day|offsite|party|happy.hour/.test(titleLower)) category = 'SOCIAL';
-
-    events.push({
-      title: summary,
-      description: description || null,
-      date: start.date,
-      start_time: start.time || null,
-      end_time: end.time || null,
-      category,
-      location: location || null,
-    });
+    if (/meeting|sync|standup|call|interview|1:1|one.on.one/.test(tl)) category = 'MEETING';
+    else if (/deadline|due|submit|submission/.test(tl)) category = 'DEADLINE';
+    else if (/review|feedback|assessment|evaluation/.test(tl)) category = 'REVIEW';
+    else if (/lunch|social|team.day|offsite|party|happy.hour/.test(tl)) category = 'SOCIAL';
+    events.push({ title: summary, description: description || null, date: start.date, start_time: start.time || null, end_time: end.time || null, category, location: location || null });
   }
   return events;
 }
 
-/* ── Supabase hooks ── */
+/* ── Hooks ── */
 function useEvents() {
-  const [events, setEvents] = useState([]);
+  const [events,  setEvents]  = useState([]);
   const [loading, setLoading] = useState(true);
-
   const fetchEvents = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-    if (!error && data) {
-      setEvents(data.map(e => ({
-        ...e,
-        start_time: e.start_time ? e.start_time.slice(0,5) : '',
-        end_time: e.end_time ? e.end_time.slice(0,5) : '',
-      })));
-    }
+    const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true });
+    if (!error && data) setEvents(data.map(e => ({ ...e, start_time: e.start_time ? e.start_time.slice(0,5) : '', end_time: e.end_time ? e.end_time.slice(0,5) : '' })));
     setLoading(false);
   }, []);
-
   useEffect(() => {
     fetchEvents();
-    // Real-time subscription
-    const channel = supabase
-      .channel('events-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
-        fetchEvents();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const ch = supabase.channel('events-changes').on('postgres_changes', { event:'*', schema:'public', table:'events' }, () => fetchEvents()).subscribe();
+    return () => supabase.removeChannel(ch);
   }, [fetchEvents]);
-
-  const addEvent = async (event) => {
-    const { data, error } = await supabase.from('events').insert({
-      title: event.title,
-      description: event.description || null,
-      date: event.date,
-      end_date: event.end_date || null,
-      start_time: event.start_time || null,
-      end_time: event.end_time || null,
-      category: event.category,
-      location: event.location || null,
-      created_by: event.created_by || null,
-      attendees: event.attendees?.length ? event.attendees : null,
-    }).select().single();
-    if (!error) fetchEvents();
-    return { data, error };
-  };
-
-  const updateEvent = async (id, updates) => {
-    const { error } = await supabase.from('events').update({
-      title: updates.title,
-      description: updates.description || null,
-      date: updates.date,
-      end_date: updates.end_date || null,
-      start_time: updates.start_time || null,
-      end_time: updates.end_time || null,
-      category: updates.category,
-      location: updates.location || null,
-      attendees: updates.attendees?.length ? updates.attendees : null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', id);
-    if (!error) fetchEvents();
-    return { error };
-  };
-
-  const deleteEvent = async (id) => {
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    if (!error) fetchEvents();
-    return { error };
-  };
-
+  const addEvent    = async (ev) => { const r = await supabase.from('events').insert({ title:ev.title, description:ev.description||null, date:ev.date, end_date:ev.end_date||null, start_time:ev.start_time||null, end_time:ev.end_time||null, category:ev.category, location:ev.location||null, created_by:ev.created_by||null, attendees:ev.attendees?.length?ev.attendees:null }).select().single(); if (!r.error) fetchEvents(); return r; };
+  const updateEvent = async (id, u) => { const r = await supabase.from('events').update({ title:u.title, description:u.description||null, date:u.date, end_date:u.end_date||null, start_time:u.start_time||null, end_time:u.end_time||null, category:u.category, location:u.location||null, attendees:u.attendees?.length?u.attendees:null, updated_at:new Date().toISOString() }).eq('id',id); if (!r.error) fetchEvents(); return r; };
+  const deleteEvent = async (id) => { const r = await supabase.from('events').delete().eq('id',id); if (!r.error) fetchEvents(); return r; };
   return { events, loading, addEvent, updateEvent, deleteEvent, refetch: fetchEvents };
 }
 
 function useMembers() {
   const [members, setMembers] = useState([]);
-
-  const fetchMembers = useCallback(async () => {
-    const { data } = await supabase.from('members').select('*').order('created_at');
-    if (data) setMembers(data);
-  }, []);
-
+  const fetchMembers = useCallback(async () => { const { data } = await supabase.from('members').select('*').order('created_at'); if (data) setMembers(data); }, []);
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
-
   const registerMember = async (name) => {
-    // Check if member already exists
     const { data: existing } = await supabase.from('members').select('*').eq('name', name).maybeSingle();
     if (existing) return existing;
     const { data } = await supabase.from('members').insert({ name }).select().single();
     fetchMembers();
     return data;
   };
-
   return { members, registerMember, refetch: fetchMembers };
 }
 
-/* ── Login Screen ── */
+function useTasks() {
+  const [tasks,   setTasks]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchTasks = useCallback(async () => {
+    const { data, error } = await supabase.from('tasks').select('*').order('due_date', { ascending: true, nullsFirst: false });
+    if (!error && data) setTasks(data);
+    setLoading(false);
+  }, []);
+  useEffect(() => {
+    fetchTasks();
+    const ch = supabase.channel('tasks-changes').on('postgres_changes', { event:'*', schema:'public', table:'tasks' }, () => fetchTasks()).subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [fetchTasks]);
+  const addTask    = async (t) => { const r = await supabase.from('tasks').insert({ title:t.title, status:t.status||'TODO', assigned_to:t.assigned_to?.length?t.assigned_to:[], created_by:t.created_by||null, due_date:t.due_date||null }).select().single(); if (!r.error) fetchTasks(); return r; };
+  const updateTask = async (id, u) => { const r = await supabase.from('tasks').update({ title:u.title, status:u.status, assigned_to:u.assigned_to?.length?u.assigned_to:[], due_date:u.due_date||null, updated_at:new Date().toISOString() }).eq('id',id); if (!r.error) fetchTasks(); return r; };
+  const deleteTask = async (id) => { const r = await supabase.from('tasks').delete().eq('id',id); if (!r.error) fetchTasks(); return r; };
+  return { tasks, loading, addTask, updateTask, deleteTask };
+}
+
+/* ── Login ── */
 function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) { setError('Please enter your name'); return; }
     if (!password) { setError('Please enter the team password'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const res = await fetch('/api/verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      if (res.status === 429) {
-        setError('Too many attempts. Please wait 15 minutes and try again.');
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) {
-        setError('Authentication service unavailable. Please try again.');
-        setLoading(false);
-        return;
-      }
+      const res = await fetch('/api/verify-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ password }) });
+      if (res.status === 429) { setError('Too many attempts. Please wait 15 minutes.'); setLoading(false); return; }
+      if (!res.ok) { setError('Authentication service unavailable. Please try again.'); setLoading(false); return; }
       const data = await res.json();
-      if (data.success) {
-        await onLogin(name.trim());
-      } else {
-        setError('Invalid team password');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.');
-    }
+      if (data.success) await onLogin(name.trim());
+      else setError('Invalid team password');
+    } catch { setError('Network error. Please check your connection.'); }
     setLoading(false);
   };
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div className="glass" style={{ padding: 48, maxWidth: 440, width: '100%', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, var(--accent), var(--accent2))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 28, fontWeight: 700 }}>P</div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Leadership Hub</h1>
-        <p style={{ color: 'var(--text2)', marginBottom: 32, fontSize: 14 }}>Procurement Senior Leadership Portal</p>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div className="glass" style={{ padding:48, maxWidth:440, width:'100%', textAlign:'center' }}>
+        <div style={{ width:64, height:64, borderRadius:16, background:'linear-gradient(135deg, var(--accent), var(--accent2))', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', fontSize:28, fontWeight:700 }}>P</div>
+        <h1 style={{ fontSize:24, fontWeight:700, marginBottom:8 }}>Leadership Hub</h1>
+        <p style={{ color:'var(--text2)', marginBottom:32, fontSize:14 }}>Procurement Senior Leadership Portal</p>
         <form onSubmit={handleSubmit}>
-          <input value={name} onChange={e => { setName(e.target.value); setError(''); }} placeholder="Your Name" className="input"
-            style={{ marginBottom: 12 }} />
-          <div style={{ position: 'relative' }}>
-            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="Team Password" className="input"
-              style={{ paddingLeft: 44 }} />
-            <span style={{ position: 'absolute', left: 14, top: 11, color: 'var(--text3)' }}><Icon d={Icons.lock} size={18} /></span>
+          <input value={name} onChange={e => { setName(e.target.value); setError(''); }} placeholder="Your Name" className="input" style={{ marginBottom:12 }} />
+          <div style={{ position:'relative' }}>
+            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="Team Password" className="input" style={{ paddingLeft:44 }} />
+            <span style={{ position:'absolute', left:14, top:11, color:'var(--text3)' }}><Icon d={Icons.lock} size={18} /></span>
           </div>
-          {error && <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 8 }}>{error}</p>}
-          <button type="submit" className="btn-primary" disabled={loading}
-            style={{ width: '100%', marginTop: 20, padding: '12px 24px', fontSize: 15, opacity: loading ? 0.7 : 1 }}>
+          {error && <p style={{ color:'var(--red)', fontSize:13, marginTop:8 }}>{error}</p>}
+          <button type="submit" className="btn-primary" disabled={loading} style={{ width:'100%', marginTop:20, padding:'12px 24px', fontSize:15, opacity:loading?0.7:1 }}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p style={{ color: 'var(--text3)', fontSize: 12, marginTop: 24 }}>Contact your administrator for access credentials</p>
+        <p style={{ color:'var(--text3)', fontSize:12, marginTop:24 }}>Contact your administrator for access credentials</p>
       </div>
     </div>
   );
@@ -306,199 +229,87 @@ function LoginScreen({ onLogin }) {
 /* ── Stat Card ── */
 function StatCard({ label, value, icon, color }) {
   return (
-    <div className="glass" style={{ padding: 24, flex: '1 1 200px', minWidth: 180 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <span style={{ color: 'var(--text2)', fontSize: 13, fontWeight: 500 }}>{label}</span>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="glass" style={{ padding:24, flex:'1 1 200px', minWidth:180 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+        <span style={{ color:'var(--text2)', fontSize:13, fontWeight:500 }}>{label}</span>
+        <div style={{ width:36, height:36, borderRadius:10, background:`${color}20`, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <Icon d={icon} size={18} color={color} />
         </div>
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize:28, fontWeight:700 }}>{value}</div>
     </div>
   );
 }
 
-/* ── Dashboard ── */
-function Dashboard({ events, members, userName, loading }) {
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const upcoming = events.filter(e => e.date >= todayStr).slice(0, 5);
-  const thisMonth = events.filter(e => {
-    const d = new Date(e.date + 'T12:00:00');
-    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-  });
-
-  const greetHour = today.getHours();
-  const greeting = greetHour < 12 ? 'Good morning' : greetHour < 17 ? 'Good afternoon' : 'Good evening';
-
-  if (loading) return <div className="loading"><div className="spinner"></div> Loading dashboard...</div>;
-
-  return (
-    <div>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{greeting}, {userName.split(' ')[0]}</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 15 }}>{today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-      </div>
-
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
-        <StatCard label="Events This Month" value={thisMonth.length} icon={Icons.calendar} color="#3b82f6" />
-        <StatCard label="Team Members" value={members.length} icon={Icons.users} color="#8b5cf6" />
-        <StatCard label="Upcoming Deadlines" value={events.filter(e => e.category === 'DEADLINE' && e.date >= todayStr).length} icon={Icons.alert} color="#ef4444" />
-        <StatCard label="Reviews Scheduled" value={events.filter(e => e.category === 'REVIEW' && e.date >= todayStr).length} icon={Icons.check} color="#22c55e" />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
-        <div className="glass" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon d={Icons.calendar} size={18} color="var(--accent)" /> Upcoming Events
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {upcoming.length === 0 && <p style={{ color: 'var(--text3)', fontSize: 14 }}>No upcoming events</p>}
-            {upcoming.map(ev => {
-              const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-              const evDate = new Date(ev.date + 'T12:00:00');
-              return (
-                <div key={ev.id} className="glass-sm" style={{ padding: 14, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ minWidth: 44, textAlign: 'center', padding: '6px 0' }}>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase' }}>{evDate.toLocaleDateString('en-US', { month: 'short' })}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>{evDate.getDate()}</div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{ev.title}</div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
-                      {ev.end_date && ev.end_date > ev.date
-                        ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Until {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
-                        : ev.start_time && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{ev.start_time}</span>
-                      }
-                      {ev.location && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{ev.location}</span>}
-                    </div>
-                    {(ev.attendees || []).length > 0 && (
-                      <div style={{ display: 'flex', marginTop: 6 }}>
-                        {(ev.attendees || []).slice(0,4).map((id, i) => {
-                          const m = members.find(x => x.id === id);
-                          if (!m) return null;
-                          const color = MEMBER_COLORS[members.indexOf(m) % MEMBER_COLORS.length];
-                          const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-                          return <div key={id} title={m.name} style={{ width: 20, height: 20, borderRadius: '50%', background: `${color}30`, border: '1.5px solid var(--bg)', color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, marginLeft: i > 0 ? -5 : 0 }}>{initials}</div>;
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="glass" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon d={Icons.users} size={18} color="var(--accent2)" /> Team Members
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {members.length === 0 && <p style={{ color: 'var(--text3)', fontSize: 14 }}>No team members yet — sign in to register</p>}
-            {members.map((m, i) => {
-              const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-              const color = MEMBER_COLORS[i % MEMBER_COLORS.length];
-              return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: i < members.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: `${color}25`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>{initials}</div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{m.role || 'Member'}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Event Modal ── */
-const MEMBER_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'];
-
-function EventModal({ event, onSave, onDelete, onClose, members }) {
-  const [form, setForm] = useState({ attendees: [], ...event });
+/* ── Task Modal ── */
+function TaskModal({ task, onSave, onDelete, onClose, members }) {
+  const isNew = !task.id;
+  const [form, setForm] = useState({ assigned_to:[], ...task });
   const [saving, setSaving] = useState(false);
-  const isNew = !event.id;
-  const isMultiDay = !!(form.end_date && form.end_date !== form.date);
+
+  const toggleAssignee = (id) => {
+    const cur = form.assigned_to || [];
+    setForm({ ...form, assigned_to: cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id] });
+  };
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    // If end_date is same as start or empty, clear it
-    const payload = { ...form, end_date: (form.end_date && form.end_date > form.date) ? form.end_date : null };
-    await onSave(payload);
+    await onSave({ ...form, due_date: form.due_date || null });
     setSaving(false);
   };
 
-  const toggleAttendee = (memberId) => {
-    const current = form.attendees || [];
-    setForm({ ...form, attendees: current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId] });
-  };
-
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}
-      onClick={onClose}>
-      <div className="glass" style={{ padding: 28, maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600 }}>{isNew ? 'New Event' : 'Edit Event'}</h2>
-          <button onClick={onClose} style={{ background: 'none', color: 'var(--text3)', padding: 4 }}><Icon d={Icons.x} size={18} /></button>
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:24 }} onClick={onClose}>
+      <div className="glass" style={{ padding:28, maxWidth:480, width:'100%', maxHeight:'90vh', overflowY:'auto' }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <h2 style={{ fontSize:18, fontWeight:600 }}>{isNew ? 'New Task' : 'Edit Task'}</h2>
+          <button onClick={onClose} style={{ background:'none', color:'var(--text3)', padding:4 }}><Icon d={Icons.x} size={18} /></button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><label className="label">Title</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="input" /></div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label className="label">Start Date</label><input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" /></div>
-            <div>
-              <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                End Date
-                <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>(optional, for multi-day)</span>
-              </label>
-              <input type="date" value={form.end_date || ''} min={form.date}
-                onChange={e => setForm({...form, end_date: e.target.value || null})} className="input" />
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          {/* Title */}
+          <div>
+            <label className="label">Task Name *</label>
+            <input value={form.title} onChange={e => setForm({...form, title:e.target.value})} placeholder="What needs to be done?" className="input" />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="label">Status</label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+              {Object.entries(TASK_STATUSES).map(([key, s]) => {
+                const selected = form.status === key;
+                return (
+                  <button key={key} type="button" onClick={() => setForm({...form, status:key})}
+                    style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${selected ? s.color : 'var(--border)'}`, background: selected ? s.bg : 'transparent', color: selected ? s.color : 'var(--text2)', fontSize:13, fontWeight: selected ? 600 : 400, cursor:'pointer', transition:'all 0.15s' }}>
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label className="label">Category</label>
-              <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="input">
-                {Object.entries(CATEGORIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </div>
-            <div><label className="label">Location</label><input value={form.location || ''} onChange={e => setForm({...form, location: e.target.value})} className="input" /></div>
+          {/* Due Date */}
+          <div>
+            <label className="label">Due Date <span style={{ fontWeight:400, color:'var(--text3)' }}>(optional — shows on calendar)</span></label>
+            <input type="date" value={form.due_date || ''} onChange={e => setForm({...form, due_date:e.target.value||null})} className="input" />
           </div>
 
-          {!isMultiDay && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div><label className="label">Start Time</label><input type="time" value={form.start_time || ''} onChange={e => setForm({...form, start_time: e.target.value})} className="input" /></div>
-              <div><label className="label">End Time</label><input type="time" value={form.end_time || ''} onChange={e => setForm({...form, end_time: e.target.value})} className="input" /></div>
-            </div>
-          )}
-
-          <div><label className="label">Description</label><textarea value={form.description || ''} onChange={e => setForm({...form, description: e.target.value})} rows={3} className="input" style={{ resize: 'vertical' }} /></div>
-
+          {/* Assignees */}
           {members && members.length > 0 && (
             <div>
-              <label className="label" style={{ marginBottom: 8 }}>Attendees</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <label className="label" style={{ marginBottom:8 }}>Assigned To</label>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {members.map((m, i) => {
-                  const selected = (form.attendees || []).includes(m.id);
+                  const selected = (form.assigned_to || []).includes(m.id);
                   const color = MEMBER_COLORS[i % MEMBER_COLORS.length];
                   const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
                   return (
-                    <button key={m.id} onClick={() => toggleAttendee(m.id)} type="button"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 6px',
-                        borderRadius: 20, border: `1.5px solid ${selected ? color : 'var(--border)'}`,
-                        background: selected ? `${color}20` : 'transparent',
-                        color: selected ? color : 'var(--text2)', fontSize: 12, fontWeight: selected ? 600 : 400,
-                        cursor: 'pointer', transition: 'all 0.15s',
-                      }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${color}30`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{initials}</div>
+                    <button key={m.id} type="button" onClick={() => toggleAssignee(m.id)}
+                      style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px 5px 6px', borderRadius:20, border:`1.5px solid ${selected ? color : 'var(--border)'}`, background:selected ? `${color}20` : 'transparent', color:selected ? color : 'var(--text2)', fontSize:12, fontWeight:selected?600:400, cursor:'pointer', transition:'all 0.15s' }}>
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:`${color}30`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>{initials}</div>
                       {m.name}
                     </button>
                   );
@@ -508,16 +319,16 @@ function EventModal({ event, onSave, onDelete, onClose, members }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+        <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end' }}>
           {!isNew && (
             <button onClick={() => onDelete(form.id)}
-              style={{ padding: '10px 18px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', color: 'var(--red)', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', marginRight: 'auto' }}>
+              style={{ padding:'10px 18px', borderRadius:8, background:'rgba(239,68,68,0.15)', color:'var(--red)', fontSize:13, fontWeight:600, border:'none', cursor:'pointer', marginRight:'auto' }}>
               Delete
             </button>
           )}
           <button onClick={onClose} className="btn-ghost">Cancel</button>
-          <button onClick={handleSave} className="btn-primary" disabled={saving} style={{ opacity: saving ? 0.7 : 1 }}>
-            {saving ? 'Saving...' : 'Save Event'}
+          <button onClick={handleSave} className="btn-primary" disabled={saving} style={{ opacity:saving?0.7:1 }}>
+            {saving ? 'Saving...' : 'Save Task'}
           </button>
         </div>
       </div>
@@ -525,14 +336,308 @@ function EventModal({ event, onSave, onDelete, onClose, members }) {
   );
 }
 
-/* ── Calendar ── */
-function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEvent, memberId, members }) {
-  const [current, setCurrent] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [modal, setModal] = useState(null); // null or event object
+/* ── Task Row (shared between views) ── */
+function TaskRow({ task, members, onClick, compact = false }) {
+  const status  = TASK_STATUSES[task.status] || TASK_STATUSES.TODO;
+  const isDone  = task.status === 'DONE';
+  const todayStr = new Date().toISOString().slice(0,10);
+  const isOverdue = task.due_date && task.due_date < todayStr && !isDone;
+  const isToday   = task.due_date && task.due_date === todayStr;
+  const dueColor  = isOverdue ? 'var(--red)' : isToday ? 'var(--amber)' : 'var(--text3)';
+  const dueLabel  = task.due_date
+    ? (isToday ? 'Due today' : isOverdue
+        ? `Overdue · ${new Date(task.due_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}`
+        : new Date(task.due_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}))
+    : null;
+  const assigneeMembers = (task.assigned_to || []).map(id => members.find(m => m.id === id)).filter(Boolean);
+
+  return (
+    <div className="glass-sm" onClick={onClick}
+      style={{ padding: compact ? '10px 12px' : 14, display:'flex', alignItems:'flex-start', gap:10, cursor:'pointer', transition:'background 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(51,65,85,0.7)'}
+      onMouseLeave={e => e.currentTarget.style.background = ''}>
+      {/* Status dot */}
+      <div style={{ width:18, height:18, borderRadius:'50%', border:`2px solid ${status.color}`, background:isDone?status.color:'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
+        {isDone && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+      </div>
+
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:4 }}>
+          <span style={{ fontWeight:600, fontSize:compact?13:14, color:isDone?'var(--text3)':'var(--text)', textDecoration:isDone?'line-through':'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{task.title}</span>
+          <span style={{ fontSize:11, padding:'2px 8px', borderRadius:6, background:status.bg, color:status.color, fontWeight:500, whiteSpace:'nowrap', flexShrink:0 }}>{status.label}</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {dueLabel && <span style={{ fontSize:11, color:dueColor, fontWeight:isOverdue||isToday?600:400 }}>{dueLabel}</span>}
+          {assigneeMembers.length > 0 && (
+            <div style={{ display:'flex' }}>
+              {assigneeMembers.slice(0,4).map((m, i) => {
+                const c = MEMBER_COLORS[members.indexOf(m) % MEMBER_COLORS.length];
+                const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                return <div key={m.id} title={m.name} style={{ width:18, height:18, borderRadius:'50%', background:`${c}30`, border:'1.5px solid var(--bg)', color:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, marginLeft:i>0?-5:0 }}>{initials}</div>;
+              })}
+              {assigneeMembers.length > 4 && <span style={{ fontSize:10, color:'var(--text3)', marginLeft:4 }}>+{assigneeMembers.length-4}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Dashboard ── */
+function Dashboard({ events, members, tasks, userName, loading, onSelectTask, onViewAllTasks }) {
+  const today    = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  const upcoming  = events.filter(e => e.date >= todayStr).slice(0,5);
+  const thisMonth = events.filter(e => { const d = new Date(e.date+'T12:00:00'); return d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear(); });
+  const openTasks = tasks.filter(t => t.status !== 'DONE').sort((a,b) => { if(!a.due_date&&!b.due_date)return 0; if(!a.due_date)return 1; if(!b.due_date)return -1; return a.due_date<b.due_date?-1:1; });
+  const greetHour = today.getHours();
+  const greeting  = greetHour < 12 ? 'Good morning' : greetHour < 17 ? 'Good afternoon' : 'Good evening';
+  if (loading) return <div className="loading"><div className="spinner"></div> Loading dashboard...</div>;
+
+  return (
+    <div>
+      <div style={{ marginBottom:32 }}>
+        <h1 style={{ fontSize:28, fontWeight:700, marginBottom:4 }}>{greeting}, {userName.split(' ')[0]}</h1>
+        <p style={{ color:'var(--text2)', fontSize:15 }}>{today.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:32 }}>
+        <StatCard label="Events This Month" value={thisMonth.length}   icon={Icons.calendar} color="#3b82f6" />
+        <StatCard label="Team Members"       value={members.length}    icon={Icons.users}    color="#8b5cf6" />
+        <StatCard label="Open Tasks"         value={openTasks.length}  icon={Icons.tasks}    color="#f59e0b" />
+        <StatCard label="Reviews Scheduled"  value={events.filter(e=>e.category==='REVIEW'&&e.date>=todayStr).length} icon={Icons.check} color="#22c55e" />
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(340px, 1fr))', gap:20 }}>
+        {/* Active Tasks */}
+        <div className="glass" style={{ padding:24 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <h2 style={{ fontSize:16, fontWeight:600, display:'flex', alignItems:'center', gap:8 }}>
+              <Icon d={Icons.tasks} size={18} color="var(--amber)" /> Active Tasks
+            </h2>
+            {openTasks.length > 4 && (
+              <button onClick={onViewAllTasks} style={{ background:'none', border:'none', color:'var(--accent)', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                View all {openTasks.length} →
+              </button>
+            )}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {openTasks.length === 0 && <p style={{ color:'var(--text3)', fontSize:14 }}>All caught up ✓</p>}
+            {openTasks.slice(0,4).map(t => (
+              <TaskRow key={t.id} task={t} members={members} onClick={() => onSelectTask(t)} compact />
+            ))}
+          </div>
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="glass" style={{ padding:24 }}>
+          <h2 style={{ fontSize:16, fontWeight:600, marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
+            <Icon d={Icons.calendar} size={18} color="var(--accent)" /> Upcoming Events
+          </h2>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {upcoming.length === 0 && <p style={{ color:'var(--text3)', fontSize:14 }}>No upcoming events</p>}
+            {upcoming.map(ev => {
+              const cat    = CATEGORIES[ev.category] || CATEGORIES.OTHER;
+              const evDate = new Date(ev.date+'T12:00:00');
+              return (
+                <div key={ev.id} className="glass-sm" style={{ padding:14, display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <div style={{ minWidth:44, textAlign:'center', padding:'6px 0' }}>
+                    <div style={{ fontSize:11, color:'var(--text3)', textTransform:'uppercase' }}>{evDate.toLocaleDateString('en-US',{month:'short'})}</div>
+                    <div style={{ fontSize:20, fontWeight:700 }}>{evDate.getDate()}</div>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:600, fontSize:14, marginBottom:4 }}>{ev.title}</div>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+                      <span style={{ fontSize:11, padding:'2px 8px', borderRadius:6, background:cat.bg, color:cat.color, fontWeight:500 }}>{cat.label}</span>
+                      {ev.end_date && ev.end_date > ev.date ? <span style={{ fontSize:12, color:'var(--text3)' }}>Until {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+                        : ev.start_time && <span style={{ fontSize:12, color:'var(--text3)' }}>{ev.start_time}</span>}
+                      {ev.location && <span style={{ fontSize:12, color:'var(--text3)' }}>{ev.location}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Team Members */}
+        <div className="glass" style={{ padding:24 }}>
+          <h2 style={{ fontSize:16, fontWeight:600, marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
+            <Icon d={Icons.users} size={18} color="var(--accent2)" /> Team Members
+          </h2>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {members.length === 0 && <p style={{ color:'var(--text3)', fontSize:14 }}>No team members yet — sign in to register</p>}
+            {members.map((m,i) => {
+              const initials = m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+              const color = MEMBER_COLORS[i % MEMBER_COLORS.length];
+              return (
+                <div key={m.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 0', borderBottom: i<members.length-1 ? '1px solid var(--border)' : 'none' }}>
+                  <div style={{ width:38, height:38, borderRadius:10, background:`${color}25`, color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:13 }}>{initials}</div>
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:14 }}>{m.name}</div>
+                    <div style={{ fontSize:12, color:'var(--text3)' }}>{m.role||'Member'}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Tasks View ── */
+const TASK_FILTER_OPTIONS = [
+  { key:'ALL', label:'All' },
+  { key:'TODO', label:'To Do' },
+  { key:'IN_PROGRESS', label:'In Progress' },
+  { key:'DONE', label:'Done' },
+  { key:'BLOCKED', label:'Blocked' },
+];
+
+function TasksView({ tasks, loading, addTask, updateTask, deleteTask, members, memberId, onNavigateTo }) {
   const [filter, setFilter] = useState('ALL');
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState(null); // { added, skipped } or null
+  const [modal,  setModal]  = useState(null);
+
+  const filtered = filter === 'ALL' ? tasks : tasks.filter(t => t.status === filter);
+  const openCount = tasks.filter(t => t.status !== 'DONE').length;
+
+  const handleSave = async (form) => {
+    if (form.id) await updateTask(form.id, form);
+    else await addTask({ ...form, created_by: memberId });
+    setModal(null);
+  };
+  const handleDelete = async (id) => { await deleteTask(id); setModal(null); };
+  const openNew = () => setModal({ title:'', status:'TODO', assigned_to:[], due_date:'' });
+
+  if (loading) return <div className="loading"><div className="spinner"></div> Loading tasks...</div>;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:24, fontWeight:700, marginBottom:4 }}>Team Tasks</h1>
+          <p style={{ color:'var(--text2)', fontSize:14 }}>{openCount === 0 ? 'All caught up ✓' : `${openCount} open task${openCount!==1?'s':''}`}</p>
+        </div>
+        <button onClick={openNew} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <Icon d={Icons.plus} size={16} /> New Task
+        </button>
+      </div>
+
+      {/* Filter chips */}
+      <div style={{ display:'flex', gap:8, marginBottom:24, flexWrap:'wrap' }}>
+        {TASK_FILTER_OPTIONS.map(({ key, label }) => {
+          const active = filter === key;
+          const s = key !== 'ALL' ? TASK_STATUSES[key] : null;
+          const color = s ? s.color : 'var(--accent)';
+          return (
+            <button key={key} onClick={() => setFilter(key)}
+              style={{ padding:'6px 16px', borderRadius:20, border:`1.5px solid ${active ? color : 'var(--border)'}`, background: active ? (s ? s.bg : 'rgba(59,130,246,0.15)') : 'transparent', color: active ? color : 'var(--text2)', fontSize:13, fontWeight:active?600:400, cursor:'pointer', transition:'all 0.15s' }}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Task list */}
+      <div className="glass" style={{ padding:24 }}>
+        {filtered.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text3)' }}>
+            <div style={{ fontSize:32, marginBottom:12 }}>☑️</div>
+            <p style={{ fontSize:14 }}>{filter==='ALL' ? 'No tasks yet — create one!' : `No ${TASK_FILTER_OPTIONS.find(f=>f.key===filter)?.label.toLowerCase()} tasks`}</p>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {filtered.map(t => (
+              <TaskRow key={t.id} task={t} members={members} onClick={() => setModal({ ...t, assigned_to: t.assigned_to || [] })} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {modal && <TaskModal task={modal} onSave={handleSave} onDelete={handleDelete} onClose={() => setModal(null)} members={members} />}
+    </div>
+  );
+}
+
+/* ── Event Modal ── */
+function EventModal({ event, onSave, onDelete, onClose, members }) {
+  const [form, setForm] = useState({ attendees:[], ...event });
+  const [saving, setSaving] = useState(false);
+  const isNew = !event.id;
+  const isMultiDay = !!(form.end_date && form.end_date !== form.date);
+  const handleSave = async () => {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    await onSave({ ...form, end_date:(form.end_date&&form.end_date>form.date)?form.end_date:null });
+    setSaving(false);
+  };
+  const toggleAttendee = (id) => { const cur = form.attendees||[]; setForm({...form, attendees:cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]}); };
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:24 }} onClick={onClose}>
+      <div className="glass" style={{ padding:28, maxWidth:500, width:'100%', maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <h2 style={{ fontSize:18, fontWeight:600 }}>{isNew ? 'New Event' : 'Edit Event'}</h2>
+          <button onClick={onClose} style={{ background:'none', color:'var(--text3)', padding:4 }}><Icon d={Icons.x} size={18} /></button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div><label className="label">Title</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} className="input" /></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div><label className="label">Start Date</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} className="input" /></div>
+            <div><label className="label" style={{display:'flex',alignItems:'center',gap:6}}>End Date <span style={{fontSize:11,color:'var(--text3)',fontWeight:400}}>(optional)</span></label>
+              <input type="date" value={form.end_date||''} min={form.date} onChange={e=>setForm({...form,end_date:e.target.value||null})} className="input" /></div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div><label className="label">Category</label>
+              <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="input">
+                {Object.entries(CATEGORIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+              </select></div>
+            <div><label className="label">Location</label><input value={form.location||''} onChange={e=>setForm({...form,location:e.target.value})} className="input" /></div>
+          </div>
+          {!isMultiDay && (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div><label className="label">Start Time</label><input type="time" value={form.start_time||''} onChange={e=>setForm({...form,start_time:e.target.value})} className="input" /></div>
+              <div><label className="label">End Time</label><input type="time" value={form.end_time||''} onChange={e=>setForm({...form,end_time:e.target.value})} className="input" /></div>
+            </div>
+          )}
+          <div><label className="label">Description</label><textarea value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})} rows={3} className="input" style={{resize:'vertical'}} /></div>
+          {members && members.length > 0 && (
+            <div>
+              <label className="label" style={{marginBottom:8}}>Attendees</label>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {members.map((m,i) => {
+                  const selected=(form.attendees||[]).includes(m.id); const color=MEMBER_COLORS[i%MEMBER_COLORS.length];
+                  const initials=m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+                  return <button key={m.id} onClick={()=>toggleAttendee(m.id)} type="button" style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px 5px 6px', borderRadius:20, border:`1.5px solid ${selected?color:'var(--border)'}`, background:selected?`${color}20`:'transparent', color:selected?color:'var(--text2)', fontSize:12, fontWeight:selected?600:400, cursor:'pointer' }}>
+                    <div style={{ width:22, height:22, borderRadius:'50%', background:`${color}30`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>{initials}</div>{m.name}
+                  </button>;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end' }}>
+          {!isNew && <button onClick={()=>onDelete(form.id)} style={{ padding:'10px 18px', borderRadius:8, background:'rgba(239,68,68,0.15)', color:'var(--red)', fontSize:13, fontWeight:600, border:'none', cursor:'pointer', marginRight:'auto' }}>Delete</button>}
+          <button onClick={onClose} className="btn-ghost">Cancel</button>
+          <button onClick={handleSave} className="btn-primary" disabled={saving} style={{opacity:saving?0.7:1}}>{saving?'Saving...':'Save Event'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Calendar View ── */
+function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEvent, memberId, members, tasks, onSelectTask }) {
+  const [current, setCurrent]       = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [modal, setModal]           = useState(null);
+  const [filter, setFilter]         = useState('ALL');
+  const [importing, setImporting]   = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleImportFile = async (e) => {
@@ -540,278 +645,148 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
     if (!fileInputRef.current) return;
     fileInputRef.current.value = '';
     if (!file) return;
-    if (!file.name.endsWith('.ics') && file.type !== 'text/calendar') {
-      setImportResult({ error: 'Please select a valid .ics calendar file.' });
-      return;
-    }
-    setImporting(true);
-    setImportResult(null);
+    if (!file.name.endsWith('.ics') && file.type !== 'text/calendar') { setImportResult({ error:'Please select a valid .ics file.' }); return; }
+    setImporting(true); setImportResult(null);
     try {
       const text = await file.text();
       const parsed = parseICS(text);
-      let added = 0, skipped = 0;
-      for (const ev of parsed) {
-        const { error } = await addEvent({ ...ev, created_by: memberId });
-        if (error) skipped++;
-        else added++;
-      }
+      let added=0, skipped=0;
+      for (const ev of parsed) { const { error } = await addEvent({ ...ev, created_by: memberId }); if (error) skipped++; else added++; }
       setImportResult({ added, skipped, total: parsed.length });
-    } catch (err) {
-      setImportResult({ error: 'Failed to parse the file. Make sure it is a valid .ics file.' });
-    }
+    } catch { setImportResult({ error: 'Failed to parse the file.' }); }
     setImporting(false);
   };
 
-  const year = current.getFullYear();
-  const month = current.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const year=current.getFullYear(), month=current.getMonth();
+  const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate();
+  const today=new Date(), todayStr=today.toISOString().slice(0,10);
 
-  const days = useMemo(() => {
-    const arr = [];
-    for (let i = 0; i < firstDay; i++) arr.push(null);
-    for (let d = 1; d <= daysInMonth; d++) arr.push(d);
-    return arr;
-  }, [firstDay, daysInMonth]);
+  const days = useMemo(() => { const a=[]; for(let i=0;i<firstDay;i++)a.push(null); for(let d=1;d<=daysInMonth;d++)a.push(d); return a; }, [firstDay, daysInMonth]);
+  const filteredEvents = filter==='ALL' ? events : events.filter(e=>e.category===filter);
 
-  const filteredEvents = filter === 'ALL' ? events : events.filter(e => e.category === filter);
+  // Tasks by due date (for dots + day panel)
+  const tasksByDate = useMemo(() => {
+    const map = {};
+    tasks.forEach(t => { if(!t.due_date)return; if(!map[t.due_date])map[t.due_date]=[]; map[t.due_date].push(t); });
+    return map;
+  }, [tasks]);
 
   const getEventsForDay = (day) => {
-    if (!day) return [];
-    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    return filteredEvents.filter(e => {
-      const start = e.date;
-      const end = e.end_date || e.date;
-      return dateStr >= start && dateStr <= end;
-    });
+    if(!day) return [];
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    return filteredEvents.filter(e=>{ const end=e.end_date||e.date; return ds>=e.date&&ds<=end; });
+  };
+  const getTasksForDay = (day) => {
+    if(!day) return [];
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    return tasksByDate[ds] || [];
   };
 
-  const isToday = (day) => day && today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+  const isToday = (day) => day&&today.getDate()===day&&today.getMonth()===month&&today.getFullYear()===year;
+  const handleDayClick = (day) => { if(!day)return; setSelectedDate(`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`); };
+  const openNew = () => { const d=selectedDate||`${year}-${String(month+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`; setModal({title:'',date:d,end_date:null,start_time:'09:00',end_time:'10:00',category:'MEETING',description:'',location:'',attendees:[]}); };
+  const handleSave  = async (ev)  => { if(ev.id) await updateEvent(ev.id,ev); else await addEvent({...ev,created_by:memberId}); setModal(null); };
+  const handleDelete = async (id) => { await deleteEvent(id); setModal(null); };
 
-  const handleDayClick = (day) => {
-    if (!day) return;
-    setSelectedDate(`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
-  };
+  const dayEvents = selectedDate ? filteredEvents.filter(e=>{ const end=e.end_date||e.date; return selectedDate>=e.date&&selectedDate<=end; }) : [];
+  const dayTasks  = selectedDate ? (tasksByDate[selectedDate]||[]) : [];
 
-  const openNew = () => {
-    const d = selectedDate || `${year}-${String(month+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    setModal({ title: '', date: d, end_date: null, start_time: '09:00', end_time: '10:00', category: 'MEETING', description: '', location: '', attendees: [] });
-  };
-
-  const handleSave = async (ev) => {
-    if (ev.id) {
-      await updateEvent(ev.id, ev);
-    } else {
-      await addEvent({ ...ev, created_by: memberId });
-    }
-    setModal(null);
-  };
-
-  const handleDelete = async (id) => {
-    await deleteEvent(id);
-    setModal(null);
-  };
-
-  const dayEvents = selectedDate ? filteredEvents.filter(e => {
-    const end = e.end_date || e.date;
-    return selectedDate >= e.date && selectedDate <= end;
-  }) : [];
-
-  if (eventsLoading) return <div className="loading"><div className="spinner"></div> Loading calendar...</div>;
+  if(eventsLoading) return <div className="loading"><div className="spinner"></div> Loading calendar...</div>;
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: importResult ? 12 : 24, flexWrap: 'wrap', gap: 12 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Calendar</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <select value={filter} onChange={e => setFilter(e.target.value)} className="input" style={{ width: 'auto', padding: '8px 12px', fontSize: 13 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:importResult?12:24, flexWrap:'wrap', gap:12 }}>
+        <h1 style={{ fontSize:24, fontWeight:700 }}>Calendar</h1>
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+          <select value={filter} onChange={e=>setFilter(e.target.value)} className="input" style={{ width:'auto', padding:'8px 12px', fontSize:13 }}>
             <option value="ALL">All Categories</option>
-            {Object.entries(CATEGORIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(CATEGORIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
           </select>
-          <input ref={fileInputRef} type="file" accept=".ics,text/calendar" style={{ display: 'none' }} onChange={handleImportFile} />
-          <button onClick={() => fileInputRef.current?.click()} className="btn-ghost"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: importing ? 0.6 : 1 }}
-            disabled={importing}>
-            <Icon d={Icons.upload} size={16} /> {importing ? 'Importing...' : 'Import .ics'}
+          <input ref={fileInputRef} type="file" accept=".ics,text/calendar" style={{ display:'none' }} onChange={handleImportFile} />
+          <button onClick={()=>fileInputRef.current?.click()} className="btn-ghost" style={{ display:'flex', alignItems:'center', gap:6, opacity:importing?0.6:1 }} disabled={importing}>
+            <Icon d={Icons.upload} size={16} /> {importing?'Importing...':'Import .ics'}
           </button>
-          <button onClick={openNew} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={openNew} className="btn-primary" style={{ display:'flex', alignItems:'center', gap:6 }}>
             <Icon d={Icons.plus} size={16} /> New Event
           </button>
         </div>
       </div>
 
       {importResult && (
-        <div style={{
-          marginBottom: 20, padding: '10px 16px', borderRadius: 10, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: importResult.error ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-          border: `1px solid ${importResult.error ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
-          color: importResult.error ? 'var(--red)' : 'var(--green)',
-        }}>
-          <span>
-            {importResult.error
-              ? importResult.error
-              : `Imported ${importResult.added} event${importResult.added !== 1 ? 's' : ''}${importResult.skipped > 0 ? ` (${importResult.skipped} skipped due to errors)` : ''}.`}
-          </span>
-          <button onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 0 0 12px', lineHeight: 1 }}>
-            <Icon d={Icons.x} size={14} />
-          </button>
+        <div style={{ marginBottom:20, padding:'10px 16px', borderRadius:10, fontSize:13, display:'flex', alignItems:'center', justifyContent:'space-between', background:importResult.error?'rgba(239,68,68,0.15)':'rgba(34,197,94,0.15)', border:`1px solid ${importResult.error?'rgba(239,68,68,0.3)':'rgba(34,197,94,0.3)'}`, color:importResult.error?'var(--red)':'var(--green)' }}>
+          <span>{importResult.error ? importResult.error : `Imported ${importResult.added} event${importResult.added!==1?'s':''}${importResult.skipped>0?` (${importResult.skipped} skipped)`:'.'}`}</span>
+          <button onClick={()=>setImportResult(null)} style={{ background:'none', border:'none', cursor:'pointer', color:'inherit', padding:'0 0 0 12px' }}><Icon d={Icons.x} size={14} /></button>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 340px' : '1fr', gap: 20 }}>
-        <div className="glass" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <button onClick={() => setCurrent(new Date(year, month - 1, 1))} className="btn-ghost" style={{ padding: 8 }}><Icon d={Icons.chevLeft} size={18} /></button>
-            <h2 style={{ fontSize: 18, fontWeight: 600 }}>{current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
-            <button onClick={() => setCurrent(new Date(year, month + 1, 1))} className="btn-ghost" style={{ padding: 8 }}><Icon d={Icons.chevRight} size={18} /></button>
+      <div style={{ display:'grid', gridTemplateColumns:selectedDate?'1fr 360px':'1fr', gap:20 }}>
+        {/* Calendar grid */}
+        <div className="glass" style={{ padding:24 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+            <button onClick={()=>setCurrent(new Date(year,month-1,1))} className="btn-ghost" style={{padding:8}}><Icon d={Icons.chevLeft} size={18}/></button>
+            <h2 style={{ fontSize:18, fontWeight:600 }}>{current.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</h2>
+            <button onClick={()=>setCurrent(new Date(year,month+1,1))} className="btn-ghost" style={{padding:8}}><Icon d={Icons.chevRight} size={18}/></button>
           </div>
 
           {(() => {
-            // Build per-week rows so we can absolutely position multi-day bars within each row
-            const CELL_HEIGHT = 72;
-            const BAR_HEIGHT = 16;
-            const BAR_TOP_OFFSET = 24; // below day number
-
-            // Split days array into weeks (rows of 7)
-            const weeks = [];
-            for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
-
-            // For each multi-day event, compute which weeks/cols it spans
-            const multiDayEvents = filteredEvents.filter(e => e.end_date && e.end_date > e.date);
-
-            // Assign a "lane" (vertical slot) per event so overlapping bars stack
-            const laneMap = {}; // eventId -> lane index
-            let nextLane = 0;
-            const usedLanes = []; // array of { lane, endDate }
-            multiDayEvents.forEach(ev => {
-              // Find first free lane that ended before this event starts
-              let lane = usedLanes.findIndex(l => l.endDate < ev.date);
-              if (lane === -1) { lane = nextLane++; usedLanes.push({ lane, endDate: ev.end_date }); }
-              else usedLanes[lane].endDate = ev.end_date;
-              laneMap[ev.id] = lane;
-            });
+            const CELL_HEIGHT=72, BAR_HEIGHT=16, BAR_TOP_OFFSET=24;
+            const weeks=[]; for(let i=0;i<days.length;i+=7) weeks.push(days.slice(i,i+7));
+            const multiDayEvents=filteredEvents.filter(e=>e.end_date&&e.end_date>e.date);
+            const laneMap={};
+            let nextLane=0; const usedLanes=[];
+            multiDayEvents.forEach(ev=>{ let lane=usedLanes.findIndex(l=>l.endDate<ev.date); if(lane===-1){lane=nextLane++;usedLanes.push({lane,endDate:ev.end_date});}else usedLanes[lane].endDate=ev.end_date; laneMap[ev.id]=lane; });
 
             return (
               <div>
-                {/* Day headers */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 2 }}>
-                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                    <div key={d} style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>{d}</div>
-                  ))}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2, marginBottom:2 }}>
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=><div key={d} style={{ textAlign:'center', padding:'8px 0', fontSize:12, fontWeight:600, color:'var(--text3)' }}>{d}</div>)}
                 </div>
-
-                {/* Week rows */}
-                {weeks.map((week, wi) => {
-                  // Collect multi-day bars that appear in this week
-                  const weekBars = [];
-                  multiDayEvents.forEach(ev => {
-                    const lane = laneMap[ev.id];
-                    week.forEach((day, col) => {
-                      if (!day) return;
-                      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                      if (dateStr !== ev.date) return; // only start bar on first day of event visible in this week
-                      // But also handle events that started before this week — start bar from col 0
-                      const evStartInWeek = ev.date >= dateStr; // true: starts here
-                      weekBars.push({ ev, startCol: col, lane });
-                    });
-                    // Handle events that started in a previous week — start from col 0 of this week
-                    const firstDayOfWeek = week.find(Boolean);
-                    if (firstDayOfWeek) {
-                      const firstStr = `${year}-${String(month+1).padStart(2,'0')}-${String(firstDayOfWeek).padStart(2,'0')}`;
-                      multiDayEvents.forEach(ev => {
-                        if (ev.date < firstStr && ev.end_date >= firstStr) {
-                          const lane = laneMap[ev.id];
-                          if (!weekBars.find(b => b.ev.id === ev.id)) {
-                            weekBars.push({ ev, startCol: week.indexOf(firstDayOfWeek), lane });
-                          }
-                        }
-                      });
-                    }
-                  });
-
-                  // For each bar, compute end col within this week
-                  const barsWithCols = weekBars.map(({ ev, startCol, lane }) => {
-                    let endCol = startCol;
-                    for (let c = startCol; c < 7; c++) {
-                      const d = week[c];
-                      if (!d) break;
-                      const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                      if (dStr <= ev.end_date) endCol = c;
-                      else break;
-                    }
-                    return { ev, startCol, endCol, lane };
-                  });
-
-                  // How many lanes are active in this week row?
-                  const maxLane = barsWithCols.length > 0 ? Math.max(...barsWithCols.map(b => b.lane)) + 1 : 0;
-                  const extraHeight = maxLane * (BAR_HEIGHT + 2);
-
+                {weeks.map((week,wi)=>{
+                  const weekBars=[];
+                  multiDayEvents.forEach(ev=>{ const lane=laneMap[ev.id]; week.forEach((day,col)=>{ if(!day)return; const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; if(ds!==ev.date)return; weekBars.push({ev,startCol:col,lane}); }); const firstDayOfWeek=week.find(Boolean); if(firstDayOfWeek){const firstStr=`${year}-${String(month+1).padStart(2,'0')}-${String(firstDayOfWeek).padStart(2,'0')}`; multiDayEvents.forEach(ev2=>{ if(ev2.date<firstStr&&ev2.end_date>=firstStr){const l=laneMap[ev2.id]; if(!weekBars.find(b=>b.ev.id===ev2.id))weekBars.push({ev:ev2,startCol:week.indexOf(firstDayOfWeek),lane:l}); }}); } });
+                  const barsWithCols=weekBars.map(({ev,startCol,lane})=>{ let endCol=startCol; for(let c=startCol;c<7;c++){const d=week[c];if(!d)break;const dStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;if(dStr<=ev.end_date)endCol=c;else break;} return {ev,startCol,endCol,lane}; });
+                  const maxLane=barsWithCols.length>0?Math.max(...barsWithCols.map(b=>b.lane))+1:0;
+                  const extraHeight=maxLane*(BAR_HEIGHT+2);
                   return (
-                    <div key={wi} style={{ position: 'relative', marginBottom: 2 }}>
-                      {/* Day cells */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-                        {week.map((day, ci) => {
-                          const dateStr = day ? `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
-                          const isSelected = dateStr === selectedDate;
-                          // Single-day events only for inline rendering
-                          const singleDayEvs = day ? filteredEvents.filter(e => {
-                            const isMulti = e.end_date && e.end_date > e.date;
-                            return !isMulti && e.date === dateStr;
-                          }) : [];
+                    <div key={wi} style={{ position:'relative', marginBottom:2 }}>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2 }}>
+                        {week.map((day,ci)=>{
+                          const ds=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:'';
+                          const isSelected=ds===selectedDate;
+                          const singleDayEvs=day?filteredEvents.filter(e=>{ const isM=e.end_date&&e.end_date>e.date; return !isM&&e.date===ds; }):[];
+                          const dayTaskDots=day?(tasksByDate[ds]||[]):[];
                           return (
-                            <div key={ci} onClick={() => handleDayClick(day)}
-                              style={{
-                                minHeight: CELL_HEIGHT + extraHeight, padding: 6, borderRadius: 8,
-                                cursor: day ? 'pointer' : 'default',
-                                background: isSelected ? 'rgba(59,130,246,0.15)' : isToday(day) ? 'rgba(59,130,246,0.08)' : 'transparent',
-                                border: isSelected ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                                transition: 'all 0.15s',
-                              }}>
+                            <div key={ci} onClick={()=>handleDayClick(day)} style={{ minHeight:CELL_HEIGHT+extraHeight, padding:6, borderRadius:8, cursor:day?'pointer':'default', background:isSelected?'rgba(59,130,246,0.15)':isToday(day)?'rgba(59,130,246,0.08)':'transparent', border:isSelected?'1px solid rgba(59,130,246,0.4)':'1px solid transparent', transition:'all 0.15s' }}>
                               {day && (
                                 <>
-                                  <div style={{ fontSize: 13, fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--accent)' : 'var(--text)', marginBottom: maxLane > 0 ? BAR_TOP_OFFSET - 18 + extraHeight : 4 }}>{day}</div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {singleDayEvs.slice(0, 2).map(ev => {
-                                      const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-                                      return <div key={ev.id} style={{ fontSize: 10, padding: '1px 4px', borderRadius: 4, background: cat.bg, color: cat.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>;
-                                    })}
-                                    {singleDayEvs.length > 2 && <div style={{ fontSize: 10, color: 'var(--text3)' }}>+{singleDayEvs.length - 2} more</div>}
+                                  <div style={{ fontSize:13, fontWeight:isToday(day)?700:400, color:isToday(day)?'var(--accent)':'var(--text)', marginBottom:maxLane>0?BAR_TOP_OFFSET-18+extraHeight:4 }}>{day}</div>
+                                  <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                                    {singleDayEvs.slice(0,2).map(ev=>{ const cat=CATEGORIES[ev.category]||CATEGORIES.OTHER; return <div key={ev.id} style={{ fontSize:10, padding:'1px 4px', borderRadius:4, background:cat.bg, color:cat.color, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>; })}
+                                    {singleDayEvs.length>2&&<div style={{ fontSize:10, color:'var(--text3)' }}>+{singleDayEvs.length-2} more</div>}
                                   </div>
+                                  {/* Task dots */}
+                                  {dayTaskDots.length > 0 && (
+                                    <div style={{ display:'flex', gap:2, marginTop:3, flexWrap:'wrap' }}>
+                                      {dayTaskDots.slice(0,3).map((t,i)=>{
+                                        const isDone=t.status==='DONE';
+                                        const tc=TASK_STATUSES[t.status]?.color||'#94a3b8';
+                                        return <div key={t.id} title={t.title} style={{ width:7, height:7, borderRadius:'50%', border:`1.5px solid ${tc}`, background:isDone?tc:'transparent' }} />;
+                                      })}
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </div>
                           );
                         })}
                       </div>
-
-                      {/* Multi-day spanning bars — absolutely positioned over the grid */}
-                      {barsWithCols.map(({ ev, startCol, endCol, lane }) => {
-                        const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-                        const colWidth = 100 / 7;
-                        const left = `calc(${startCol * colWidth}% + 4px)`;
-                        const width = `calc(${(endCol - startCol + 1) * colWidth}% - 8px)`;
-                        const top = BAR_TOP_OFFSET + lane * (BAR_HEIGHT + 2);
-                        const startsThisWeek = ev.date >= `${year}-${String(month+1).padStart(2,'0')}-${String(week[startCol]).padStart(2,'0')}`;
-                        const endsThisWeek = endCol < 6 && week[endCol] && `${year}-${String(month+1).padStart(2,'0')}-${String(week[endCol]).padStart(2,'0')}` >= ev.end_date;
-                        return (
-                          <div key={ev.id + '-' + wi}
-                            onClick={(e) => { e.stopPropagation(); setModal({ ...ev, attendees: ev.attendees || [] }); }}
-                            title={ev.title}
-                            style={{
-                              position: 'absolute', top, left, width, height: BAR_HEIGHT,
-                              background: cat.color,
-                              borderRadius: `${startsThisWeek ? 4 : 0}px ${endsThisWeek ? 4 : 0}px ${endsThisWeek ? 4 : 0}px ${startsThisWeek ? 4 : 0}px`,
-                              display: 'flex', alignItems: 'center', paddingLeft: startsThisWeek ? 6 : 3,
-                              fontSize: 10, fontWeight: 600, color: '#fff',
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                              cursor: 'pointer', zIndex: 10,
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                            }}>
-                            {startsThisWeek ? ev.title : `↳ ${ev.title}`}
-                          </div>
-                        );
+                      {barsWithCols.map(({ev,startCol,endCol,lane})=>{
+                        const cat=CATEGORIES[ev.category]||CATEGORIES.OTHER;
+                        const colWidth=100/7, left=`calc(${startCol*colWidth}% + 4px)`, width=`calc(${(endCol-startCol+1)*colWidth}% - 8px)`;
+                        const top=BAR_TOP_OFFSET+lane*(BAR_HEIGHT+2);
+                        const startsThisWeek=ev.date>=`${year}-${String(month+1).padStart(2,'0')}-${String(week[startCol]).padStart(2,'0')}`;
+                        const endsThisWeek=endCol<6&&week[endCol]&&`${year}-${String(month+1).padStart(2,'0')}-${String(week[endCol]).padStart(2,'0')}`>=ev.end_date;
+                        return <div key={ev.id+'-'+wi} onClick={e=>{e.stopPropagation();setModal({...ev,attendees:ev.attendees||[]});}} title={ev.title} style={{ position:'absolute', top, left, width, height:BAR_HEIGHT, background:cat.color, borderRadius:`${startsThisWeek?4:0}px ${endsThisWeek?4:0}px ${endsThisWeek?4:0}px ${startsThisWeek?4:0}px`, display:'flex', alignItems:'center', paddingLeft:startsThisWeek?6:3, fontSize:10, fontWeight:600, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', cursor:'pointer', zIndex:10, boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{startsThisWeek?ev.title:`↳ ${ev.title}`}</div>;
                       })}
                     </div>
                   );
@@ -821,142 +796,142 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
           })()}
         </div>
 
+        {/* Day panel */}
         {selectedDate && (
-          <div className="glass" style={{ padding: 20, alignSelf: 'start' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600 }}>
-                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </h3>
-              <button onClick={() => setSelectedDate(null)} style={{ background: 'none', color: 'var(--text3)', padding: 4, border: 'none', cursor: 'pointer' }}><Icon d={Icons.x} size={16} /></button>
+          <div className="glass" style={{ padding:20, alignSelf:'start' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <h3 style={{ fontSize:15, fontWeight:600 }}>{new Date(selectedDate+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</h3>
+              <button onClick={()=>setSelectedDate(null)} style={{ background:'none', color:'var(--text3)', padding:4, border:'none', cursor:'pointer' }}><Icon d={Icons.x} size={16}/></button>
             </div>
-            {dayEvents.length === 0 && <p style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>No events scheduled</p>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {dayEvents.map(ev => {
-                const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-                const isMultiDay = ev.end_date && ev.end_date > ev.date;
-                const attendeeMembers = (ev.attendees || []).map(id => members.find(m => m.id === id)).filter(Boolean);
-                return (
-                  <div key={ev.id} className="glass-sm" style={{ padding: 14, cursor: 'pointer' }} onClick={() => setModal({ ...ev, attendees: ev.attendees || [] })}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{ev.title}</span>
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: cat.bg, color: cat.color, fontWeight: 500, whiteSpace: 'nowrap' }}>{cat.label}</span>
-                    </div>
-                    {isMultiDay && (
-                      <div style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Icon d={Icons.calendar} size={12} color="var(--accent)" />
-                        {new Date(ev.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} – {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
-                      </div>
-                    )}
-                    {!isMultiDay && ev.start_time && <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Icon d={Icons.clock} size={12} /> {ev.start_time}{ev.end_time ? ` – ${ev.end_time}` : ''}</div>}
-                    {ev.location && <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}><Icon d={Icons.mapPin} size={12} /> {ev.location}</div>}
-                    {ev.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>{ev.description}</div>}
-                    {attendeeMembers.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
-                        <div style={{ display: 'flex', marginRight: 4 }}>
-                          {attendeeMembers.slice(0, 5).map((m, i) => {
-                            const color = MEMBER_COLORS[members.indexOf(m) % MEMBER_COLORS.length];
-                            const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-                            return (
-                              <div key={m.id} title={m.name} style={{ width: 22, height: 22, borderRadius: '50%', background: `${color}30`, border: `1.5px solid var(--bg)`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, marginLeft: i > 0 ? -6 : 0 }}>{initials}</div>
-                            );
-                          })}
+
+            {dayEvents.length === 0 && dayTasks.length === 0 && <p style={{ color:'var(--text3)', fontSize:13, textAlign:'center', padding:'24px 0' }}>Nothing scheduled</p>}
+
+            {/* Events */}
+            {dayEvents.length > 0 && (
+              <div style={{ marginBottom: dayTasks.length > 0 ? 16 : 0 }}>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Events</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {dayEvents.map(ev=>{
+                    const cat=CATEGORIES[ev.category]||CATEGORIES.OTHER;
+                    const isMultiDay=ev.end_date&&ev.end_date>ev.date;
+                    const attendeeMembers=(ev.attendees||[]).map(id=>members.find(m=>m.id===id)).filter(Boolean);
+                    return (
+                      <div key={ev.id} className="glass-sm" style={{ padding:14, cursor:'pointer' }} onClick={()=>setModal({...ev,attendees:ev.attendees||[]})}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+                          <span style={{ fontWeight:600, fontSize:14 }}>{ev.title}</span>
+                          <span style={{ fontSize:10, padding:'2px 8px', borderRadius:6, background:cat.bg, color:cat.color, fontWeight:500, whiteSpace:'nowrap' }}>{cat.label}</span>
                         </div>
-                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>
-                          {attendeeMembers.length === 1 ? attendeeMembers[0].name : `${attendeeMembers.length} attendees`}
-                        </span>
+                        {isMultiDay&&<div style={{ fontSize:12, color:'var(--accent)', display:'flex', alignItems:'center', gap:4, marginBottom:4 }}><Icon d={Icons.calendar} size={12} color="var(--accent)"/>{new Date(ev.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} – {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>}
+                        {!isMultiDay&&ev.start_time&&<div style={{ fontSize:12, color:'var(--text2)', display:'flex', alignItems:'center', gap:4, marginBottom:4 }}><Icon d={Icons.clock} size={12}/>{ev.start_time}{ev.end_time?` – ${ev.end_time}`:''}</div>}
+                        {ev.location&&<div style={{ fontSize:12, color:'var(--text3)', display:'flex', alignItems:'center', gap:4 }}><Icon d={Icons.mapPin} size={12}/>{ev.location}</div>}
+                        {attendeeMembers.length>0&&<div style={{ display:'flex', alignItems:'center', gap:4, marginTop:8 }}><div style={{ display:'flex', marginRight:4 }}>{attendeeMembers.slice(0,5).map((m,i)=>{ const c=MEMBER_COLORS[members.indexOf(m)%MEMBER_COLORS.length]; const ini=m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); return <div key={m.id} title={m.name} style={{ width:22, height:22, borderRadius:'50%', background:`${c}30`, border:'1.5px solid var(--bg)', color:c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, marginLeft:i>0?-6:0 }}>{ini}</div>; })}</div><span style={{ fontSize:11, color:'var(--text3)' }}>{attendeeMembers.length===1?attendeeMembers[0].name:`${attendeeMembers.length} attendees`}</span></div>}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <button onClick={openNew}
-              style={{ marginTop: 12, width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(59,130,246,0.15)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', cursor: 'pointer' }}>
-              <Icon d={Icons.plus} size={14} color="var(--accent)" /> Add Event
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Tasks due this day */}
+            {dayTasks.length > 0 && (
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8, paddingTop: dayEvents.length>0 ? 8 : 0, borderTop: dayEvents.length>0 ? '1px solid var(--border)' : 'none' }}>Tasks Due</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {dayTasks.map(t => (
+                    <TaskRow key={t.id} task={t} members={members} onClick={() => onSelectTask && onSelectTask(t)} compact />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={openNew} style={{ marginTop:12, width:'100%', padding:'10px', borderRadius:8, background:'rgba(59,130,246,0.15)', color:'var(--accent)', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:6, border:'none', cursor:'pointer' }}>
+              <Icon d={Icons.plus} size={14} color="var(--accent)"/> Add Event
             </button>
           </div>
         )}
       </div>
 
-      {modal && <EventModal event={modal} onSave={handleSave} onDelete={handleDelete} onClose={() => setModal(null)} members={members} />}
+      {modal && <EventModal event={modal} onSave={handleSave} onDelete={handleDelete} onClose={()=>setModal(null)} members={members}/>}
     </div>
   );
 }
 
 /* ── Main App ── */
 function App() {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('lhub_user')); } catch { return null; }
-  });
+  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('lhub_user')); } catch { return null; } });
   const [page, setPage] = useState('dashboard');
-  const { events, loading: eventsLoading, addEvent, updateEvent, deleteEvent } = useEvents();
-  const { members, registerMember } = useMembers();
+  const [taskModal, setTaskModal] = useState(null); // for opening from Dashboard / Calendar
+
+  const { events,  loading:eventsLoading, addEvent,  updateEvent,  deleteEvent  } = useEvents();
+  const { members, registerMember }                                                = useMembers();
+  const { tasks,   loading:tasksLoading,  addTask,   updateTask,   deleteTask   } = useTasks();
 
   const handleLogin = async (name) => {
     const member = await registerMember(name);
-    const userData = { name, memberId: member?.id || null };
-    setUser(userData);
-    localStorage.setItem('lhub_user', JSON.stringify(userData));
+    const userData = { name, memberId: member?.id||null };
+    setUser(userData); localStorage.setItem('lhub_user', JSON.stringify(userData));
   };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('lhub_user');
-  };
+  const handleLogout = () => { setUser(null); localStorage.removeItem('lhub_user'); };
 
   if (!user) return <LoginScreen onLogin={handleLogin} />;
 
+  // Task modal handlers (shared from Dashboard + Calendar)
+  const handleSelectTask = (t) => setTaskModal({ ...t, assigned_to: t.assigned_to||[] });
+  const handleSaveTask   = async (form) => { if(form.id) await updateTask(form.id,form); else await addTask({...form, created_by:user.memberId}); setTaskModal(null); };
+  const handleDeleteTask = async (id)  => { await deleteTask(id); setTaskModal(null); };
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
-    { id: 'calendar', label: 'Calendar', icon: Icons.calendar },
+    { id:'dashboard', label:'Dashboard', icon:Icons.dashboard },
+    { id:'calendar',  label:'Calendar',  icon:Icons.calendar  },
+    { id:'tasks',     label:'Tasks',     icon:Icons.tasks     },
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <nav className="sidebar" style={{ width: 240, padding: '24px 16px', borderRight: '1px solid var(--border)', background: 'rgba(15,23,42,0.4)', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36, padding: '0 8px' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent), var(--accent2))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>P</div>
+    <div style={{ display:'flex', minHeight:'100vh' }}>
+      {/* Sidebar */}
+      <nav className="sidebar" style={{ width:240, padding:'24px 16px', borderRight:'1px solid var(--border)', background:'rgba(15,23,42,0.4)', display:'flex', flexDirection:'column', position:'fixed', top:0, left:0, bottom:0, zIndex:50 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:36, padding:'0 8px' }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg, var(--accent), var(--accent2))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700 }}>P</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Leadership Hub</div>
-            <div style={{ fontSize: 11, color: 'var(--text3)' }}>Procurement</div>
+            <div style={{ fontSize:14, fontWeight:700 }}>Leadership Hub</div>
+            <div style={{ fontSize:11, color:'var(--text3)' }}>Procurement</div>
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:4 }}>
           {navItems.map(item => (
-            <button key={item.id} onClick={() => setPage(item.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, width: '100%',
-                background: page === item.id ? 'rgba(59,130,246,0.15)' : 'transparent',
-                color: page === item.id ? 'var(--accent)' : 'var(--text2)',
-                fontSize: 14, fontWeight: page === item.id ? 600 : 400, transition: 'all 0.15s', textAlign: 'left', border: 'none', cursor: 'pointer',
-              }}>
+            <button key={item.id} onClick={()=>setPage(item.id)}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, width:'100%', background:page===item.id?'rgba(59,130,246,0.15)':'transparent', color:page===item.id?'var(--accent)':'var(--text2)', fontSize:14, fontWeight:page===item.id?600:400, transition:'all 0.15s', textAlign:'left', border:'none', cursor:'pointer' }}>
               <Icon d={item.icon} size={18} /> {item.label}
             </button>
           ))}
         </div>
 
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px', marginBottom: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,0.25)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12 }}>
-              {user.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+        <div style={{ borderTop:'1px solid var(--border)', paddingTop:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 8px', marginBottom:12 }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(59,130,246,0.25)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12 }}>
+              {user.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)' }}>Online</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user.name}</div>
+              <div style={{ fontSize:11, color:'var(--text3)' }}>Online</div>
             </div>
           </div>
-          <button onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, width: '100%', background: 'none', color: 'var(--text3)', fontSize: 13, textAlign: 'left', border: 'none', cursor: 'pointer' }}>
-            <Icon d={Icons.logout} size={16} /> Sign Out
+          <button onClick={handleLogout} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:8, width:'100%', background:'none', color:'var(--text3)', fontSize:13, textAlign:'left', border:'none', cursor:'pointer' }}>
+            <Icon d={Icons.logout} size={16}/> Sign Out
           </button>
         </div>
       </nav>
 
-      <main className="main-content" style={{ flex: 1, marginLeft: 240, padding: 32 }}>
-        {page === 'dashboard' && <Dashboard events={events} members={members} userName={user.name} loading={eventsLoading} />}
-        {page === 'calendar' && <CalendarView events={events} eventsLoading={eventsLoading} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} memberId={user.memberId} members={members} />}
+      {/* Main content */}
+      <main className="main-content" style={{ flex:1, marginLeft:240, padding:32 }}>
+        {page==='dashboard' && <Dashboard events={events} members={members} tasks={tasks} userName={user.name} loading={eventsLoading} onSelectTask={handleSelectTask} onViewAllTasks={()=>setPage('tasks')} />}
+        {page==='calendar'  && <CalendarView events={events} eventsLoading={eventsLoading} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} memberId={user.memberId} members={members} tasks={tasks} onSelectTask={handleSelectTask} />}
+        {page==='tasks'     && <TasksView tasks={tasks} loading={tasksLoading} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} members={members} memberId={user.memberId} onNavigateTo={setPage} />}
       </main>
+
+      {/* Task modal (opened from Dashboard / Calendar) */}
+      {taskModal && <TaskModal task={taskModal} onSave={handleSaveTask} onDelete={handleDeleteTask} onClose={()=>setTaskModal(null)} members={members} />}
     </div>
   );
 }
