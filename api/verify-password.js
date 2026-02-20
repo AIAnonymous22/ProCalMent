@@ -7,6 +7,18 @@ const attempts = new Map();
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
 
+// Vercel does not auto-parse JSON bodies — read raw stream manually.
+function parseBody(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => {
+      try { resolve(JSON.parse(data)); }
+      catch { resolve({}); }
+    });
+  });
+}
+
 function isRateLimited(ip) {
   const now = Date.now();
   const timestamps = (attempts.get(ip) || []).filter(t => now - t < WINDOW_MS);
@@ -44,7 +56,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const { password } = req.body || {};
+  const { password } = await parseBody(req);
 
   if (!password || typeof password !== 'string') {
     return res.status(400).json({ success: false, error: 'Password required' });
