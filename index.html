@@ -588,13 +588,6 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
     });
   };
 
-  // Returns true if this day is a continuation (not the start) of a multi-day event
-  const isSpanContinuation = (day, ev) => {
-    if (!day || !ev.end_date || ev.end_date <= ev.date) return false;
-    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    return dateStr > ev.date;
-  };
-
   const isToday = (day) => day && today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
 
   const handleDayClick = (day) => {
@@ -675,50 +668,157 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
             <button onClick={() => setCurrent(new Date(year, month + 1, 1))} className="btn-ghost" style={{ padding: 8 }}><Icon d={Icons.chevRight} size={18} /></button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-              <div key={d} style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>{d}</div>
-            ))}
-            {days.map((day, i) => {
-              const dayEv = getEventsForDay(day);
-              const dateStr = day ? `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
-              const isSelected = dateStr === selectedDate;
-              return (
-                <div key={i} onClick={() => handleDayClick(day)}
-                  style={{
-                    minHeight: 72, padding: 6, borderRadius: 8, cursor: day ? 'pointer' : 'default',
-                    background: isSelected ? 'rgba(59,130,246,0.15)' : isToday(day) ? 'rgba(59,130,246,0.08)' : 'transparent',
-                    border: isSelected ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                    transition: 'all 0.15s',
-                  }}>
-                  {day && (
-                    <>
-                      <div style={{ fontSize: 13, fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--accent)' : 'var(--text)', marginBottom: 4 }}>{day}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {dayEv.slice(0, 2).map(ev => {
-                          const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-                          const isMulti = ev.end_date && ev.end_date > ev.date;
-                          const isCont = isSpanContinuation(day, ev);
+          {(() => {
+            // Build per-week rows so we can absolutely position multi-day bars within each row
+            const CELL_HEIGHT = 72;
+            const BAR_HEIGHT = 16;
+            const BAR_TOP_OFFSET = 24; // below day number
+
+            // Split days array into weeks (rows of 7)
+            const weeks = [];
+            for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+            // For each multi-day event, compute which weeks/cols it spans
+            const multiDayEvents = filteredEvents.filter(e => e.end_date && e.end_date > e.date);
+
+            // Assign a "lane" (vertical slot) per event so overlapping bars stack
+            const laneMap = {}; // eventId -> lane index
+            let nextLane = 0;
+            const usedLanes = []; // array of { lane, endDate }
+            multiDayEvents.forEach(ev => {
+              // Find first free lane that ended before this event starts
+              let lane = usedLanes.findIndex(l => l.endDate < ev.date);
+              if (lane === -1) { lane = nextLane++; usedLanes.push({ lane, endDate: ev.end_date }); }
+              else usedLanes[lane].endDate = ev.end_date;
+              laneMap[ev.id] = lane;
+            });
+
+            return (
+              <div>
+                {/* Day headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 2 }}>
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                    <div key={d} style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>{d}</div>
+                  ))}
+                </div>
+
+                {/* Week rows */}
+                {weeks.map((week, wi) => {
+                  // Collect multi-day bars that appear in this week
+                  const weekBars = [];
+                  multiDayEvents.forEach(ev => {
+                    const lane = laneMap[ev.id];
+                    week.forEach((day, col) => {
+                      if (!day) return;
+                      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                      if (dateStr !== ev.date) return; // only start bar on first day of event visible in this week
+                      // But also handle events that started before this week — start bar from col 0
+                      const evStartInWeek = ev.date >= dateStr; // true: starts here
+                      weekBars.push({ ev, startCol: col, lane });
+                    });
+                    // Handle events that started in a previous week — start from col 0 of this week
+                    const firstDayOfWeek = week.find(Boolean);
+                    if (firstDayOfWeek) {
+                      const firstStr = `${year}-${String(month+1).padStart(2,'0')}-${String(firstDayOfWeek).padStart(2,'0')}`;
+                      multiDayEvents.forEach(ev => {
+                        if (ev.date < firstStr && ev.end_date >= firstStr) {
+                          const lane = laneMap[ev.id];
+                          if (!weekBars.find(b => b.ev.id === ev.id)) {
+                            weekBars.push({ ev, startCol: week.indexOf(firstDayOfWeek), lane });
+                          }
+                        }
+                      });
+                    }
+                  });
+
+                  // For each bar, compute end col within this week
+                  const barsWithCols = weekBars.map(({ ev, startCol, lane }) => {
+                    let endCol = startCol;
+                    for (let c = startCol; c < 7; c++) {
+                      const d = week[c];
+                      if (!d) break;
+                      const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                      if (dStr <= ev.end_date) endCol = c;
+                      else break;
+                    }
+                    return { ev, startCol, endCol, lane };
+                  });
+
+                  // How many lanes are active in this week row?
+                  const maxLane = barsWithCols.length > 0 ? Math.max(...barsWithCols.map(b => b.lane)) + 1 : 0;
+                  const extraHeight = maxLane * (BAR_HEIGHT + 2);
+
+                  return (
+                    <div key={wi} style={{ position: 'relative', marginBottom: 2 }}>
+                      {/* Day cells */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+                        {week.map((day, ci) => {
+                          const dateStr = day ? `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
+                          const isSelected = dateStr === selectedDate;
+                          // Single-day events only for inline rendering
+                          const singleDayEvs = day ? filteredEvents.filter(e => {
+                            const isMulti = e.end_date && e.end_date > e.date;
+                            return !isMulti && e.date === dateStr;
+                          }) : [];
                           return (
-                            <div key={ev.id} style={{
-                              fontSize: 10, padding: '1px 4px', background: cat.bg, color: cat.color,
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                              borderRadius: isMulti ? (isCont ? '0 4px 4px 0' : '4px 0 0 4px') : 4,
-                              borderLeft: isMulti && !isCont ? `2px solid ${cat.color}` : undefined,
-                              opacity: isCont ? 0.75 : 1,
-                            }}>
-                              {isCont ? '↳ ' : ''}{ev.title}
+                            <div key={ci} onClick={() => handleDayClick(day)}
+                              style={{
+                                minHeight: CELL_HEIGHT + extraHeight, padding: 6, borderRadius: 8,
+                                cursor: day ? 'pointer' : 'default',
+                                background: isSelected ? 'rgba(59,130,246,0.15)' : isToday(day) ? 'rgba(59,130,246,0.08)' : 'transparent',
+                                border: isSelected ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                                transition: 'all 0.15s',
+                              }}>
+                              {day && (
+                                <>
+                                  <div style={{ fontSize: 13, fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--accent)' : 'var(--text)', marginBottom: maxLane > 0 ? BAR_TOP_OFFSET - 18 + extraHeight : 4 }}>{day}</div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {singleDayEvs.slice(0, 2).map(ev => {
+                                      const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
+                                      return <div key={ev.id} style={{ fontSize: 10, padding: '1px 4px', borderRadius: 4, background: cat.bg, color: cat.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>;
+                                    })}
+                                    {singleDayEvs.length > 2 && <div style={{ fontSize: 10, color: 'var(--text3)' }}>+{singleDayEvs.length - 2} more</div>}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           );
                         })}
-                        {dayEv.length > 2 && <div style={{ fontSize: 10, color: 'var(--text3)' }}>+{dayEv.length - 2} more</div>}
                       </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+
+                      {/* Multi-day spanning bars — absolutely positioned over the grid */}
+                      {barsWithCols.map(({ ev, startCol, endCol, lane }) => {
+                        const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
+                        const colWidth = 100 / 7;
+                        const left = `calc(${startCol * colWidth}% + 4px)`;
+                        const width = `calc(${(endCol - startCol + 1) * colWidth}% - 8px)`;
+                        const top = BAR_TOP_OFFSET + lane * (BAR_HEIGHT + 2);
+                        const startsThisWeek = ev.date >= `${year}-${String(month+1).padStart(2,'0')}-${String(week[startCol]).padStart(2,'0')}`;
+                        const endsThisWeek = endCol < 6 && week[endCol] && `${year}-${String(month+1).padStart(2,'0')}-${String(week[endCol]).padStart(2,'0')}` >= ev.end_date;
+                        return (
+                          <div key={ev.id + '-' + wi}
+                            onClick={(e) => { e.stopPropagation(); setModal({ ...ev, attendees: ev.attendees || [] }); }}
+                            title={ev.title}
+                            style={{
+                              position: 'absolute', top, left, width, height: BAR_HEIGHT,
+                              background: cat.color,
+                              borderRadius: `${startsThisWeek ? 4 : 0}px ${endsThisWeek ? 4 : 0}px ${endsThisWeek ? 4 : 0}px ${startsThisWeek ? 4 : 0}px`,
+                              display: 'flex', alignItems: 'center', paddingLeft: startsThisWeek ? 6 : 3,
+                              fontSize: 10, fontWeight: 600, color: '#fff',
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              cursor: 'pointer', zIndex: 10,
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                            }}>
+                            {startsThisWeek ? ev.title : `↳ ${ev.title}`}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {selectedDate && (
