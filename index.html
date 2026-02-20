@@ -48,7 +48,6 @@ const SUPABASE_URL = 'https://yccjzybfaucjflilzpla.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_9MSp4q8-nwZSFwDXEsP7PQ_vhAp8CBd';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TEAM_PASSWORD = 'ProCalMent2026';
 
 const CATEGORIES = {
   MEETING: { label: 'Meeting', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
@@ -79,7 +78,66 @@ const Icons = {
   alert: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
   refresh: 'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
   edit: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
+  upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
 };
+
+/* ── iCal (.ics) Parser ── */
+function parseICS(text) {
+  const events = [];
+  // Split into VEVENT blocks
+  const blocks = text.split('BEGIN:VEVENT');
+  blocks.shift(); // remove preamble before first VEVENT
+
+  for (const block of blocks) {
+    const get = (key) => {
+      // Match key or key;PARAM=...: value, handle folded lines (lines starting with space)
+      const unfold = block.replace(/\r?\n[ \t]/g, '');
+      const match = unfold.match(new RegExp(`(?:^|\\n)${key}(?:;[^:]*)?:([^\\n]*)`, 'i'));
+      return match ? match[1].trim() : '';
+    };
+
+    const rawStart = get('DTSTART');
+    const rawEnd = get('DTEND');
+    const summary = get('SUMMARY').replace(/\\,/g, ',').replace(/\\n/g, ' ').replace(/\\/g, '');
+    const description = get('DESCRIPTION').replace(/\\,/g, ',').replace(/\\n/g, '\n').replace(/\\/g, '');
+    const location = get('LOCATION').replace(/\\,/g, ',').replace(/\\/g, '');
+
+    if (!rawStart || !summary) continue;
+
+    // Parse date: handles YYYYMMDD and YYYYMMDDTHHmmssZ
+    const parseDate = (raw) => {
+      const d = raw.replace(/[TZ]/g, '').replace(/[^0-9]/g, '');
+      if (d.length < 8) return { date: '', time: '' };
+      const date = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+      const time = d.length >= 12 ? `${d.slice(8,10)}:${d.slice(10,12)}` : '';
+      return { date, time };
+    };
+
+    const start = parseDate(rawStart);
+    const end = rawEnd ? parseDate(rawEnd) : { date: '', time: '' };
+
+    if (!start.date) continue;
+
+    // Guess category from summary keywords
+    const titleLower = summary.toLowerCase();
+    let category = 'OTHER';
+    if (/meeting|sync|standup|call|interview|1:1|one.on.one/.test(titleLower)) category = 'MEETING';
+    else if (/deadline|due|submit|submission/.test(titleLower)) category = 'DEADLINE';
+    else if (/review|feedback|assessment|evaluation/.test(titleLower)) category = 'REVIEW';
+    else if (/lunch|social|team.day|offsite|party|happy.hour/.test(titleLower)) category = 'SOCIAL';
+
+    events.push({
+      title: summary,
+      description: description || null,
+      date: start.date,
+      start_time: start.time || null,
+      end_time: end.time || null,
+      category,
+      location: location || null,
+    });
+  }
+  return events;
+}
 
 /* ── Supabase hooks ── */
 function useEvents() {
@@ -184,9 +242,34 @@ function LoginScreen({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) { setError('Please enter your name'); return; }
-    if (password !== TEAM_PASSWORD) { setError('Invalid team password'); return; }
+    if (!password) { setError('Please enter the team password'); return; }
     setLoading(true);
-    await onLogin(name.trim());
+    setError('');
+    try {
+      const res = await fetch('/api/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.status === 429) {
+        setError('Too many attempts. Please wait 15 minutes and try again.');
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) {
+        setError('Authentication service unavailable. Please try again.');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        await onLogin(name.trim());
+      } else {
+        setError('Invalid team password');
+      }
+    } catch (err) {
+      setError('Network error. Please check your connection and try again.');
+    }
     setLoading(false);
   };
 
@@ -379,6 +462,36 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
   const [selectedDate, setSelectedDate] = useState(null);
   const [modal, setModal] = useState(null); // null or event object
   const [filter, setFilter] = useState('ALL');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null); // { added, skipped } or null
+  const fileInputRef = useRef(null);
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = '';
+    if (!file) return;
+    if (!file.name.endsWith('.ics') && file.type !== 'text/calendar') {
+      setImportResult({ error: 'Please select a valid .ics calendar file.' });
+      return;
+    }
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const parsed = parseICS(text);
+      let added = 0, skipped = 0;
+      for (const ev of parsed) {
+        const { error } = await addEvent({ ...ev, created_by: memberId });
+        if (error) skipped++;
+        else added++;
+      }
+      setImportResult({ added, skipped, total: parsed.length });
+    } catch (err) {
+      setImportResult({ error: 'Failed to parse the file. Make sure it is a valid .ics file.' });
+    }
+    setImporting(false);
+  };
 
   const year = current.getFullYear();
   const month = current.getMonth();
@@ -434,18 +547,42 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: importResult ? 12 : 24, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Calendar</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <select value={filter} onChange={e => setFilter(e.target.value)} className="input" style={{ width: 'auto', padding: '8px 12px', fontSize: 13 }}>
             <option value="ALL">All Categories</option>
             {Object.entries(CATEGORIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
+          <input ref={fileInputRef} type="file" accept=".ics,text/calendar" style={{ display: 'none' }} onChange={handleImportFile} />
+          <button onClick={() => fileInputRef.current?.click()} className="btn-ghost"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: importing ? 0.6 : 1 }}
+            disabled={importing}>
+            <Icon d={Icons.upload} size={16} /> {importing ? 'Importing...' : 'Import .ics'}
+          </button>
           <button onClick={openNew} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon d={Icons.plus} size={16} /> New Event
           </button>
         </div>
       </div>
+
+      {importResult && (
+        <div style={{
+          marginBottom: 20, padding: '10px 16px', borderRadius: 10, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: importResult.error ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
+          border: `1px solid ${importResult.error ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+          color: importResult.error ? 'var(--red)' : 'var(--green)',
+        }}>
+          <span>
+            {importResult.error
+              ? importResult.error
+              : `Imported ${importResult.added} event${importResult.added !== 1 ? 's' : ''}${importResult.skipped > 0 ? ` (${importResult.skipped} skipped due to errors)` : ''}.`}
+          </span>
+          <button onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 0 0 12px', lineHeight: 1 }}>
+            <Icon d={Icons.x} size={14} />
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 340px' : '1fr', gap: 20 }}>
         <div className="glass" style={{ padding: 24 }}>
