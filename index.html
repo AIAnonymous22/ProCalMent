@@ -176,11 +176,13 @@ function useEvents() {
       title: event.title,
       description: event.description || null,
       date: event.date,
+      end_date: event.end_date || null,
       start_time: event.start_time || null,
       end_time: event.end_time || null,
       category: event.category,
       location: event.location || null,
       created_by: event.created_by || null,
+      attendees: event.attendees?.length ? event.attendees : null,
     }).select().single();
     if (!error) fetchEvents();
     return { data, error };
@@ -191,10 +193,12 @@ function useEvents() {
       title: updates.title,
       description: updates.description || null,
       date: updates.date,
+      end_date: updates.end_date || null,
       start_time: updates.start_time || null,
       end_time: updates.end_time || null,
       category: updates.category,
       location: updates.location || null,
+      attendees: updates.attendees?.length ? updates.attendees : null,
       updated_at: new Date().toISOString(),
     }).eq('id', id);
     if (!error) fetchEvents();
@@ -327,8 +331,6 @@ function Dashboard({ events, members, userName, loading }) {
   const greetHour = today.getHours();
   const greeting = greetHour < 12 ? 'Good morning' : greetHour < 17 ? 'Good afternoon' : 'Good evening';
 
-  const MEMBER_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'];
-
   if (loading) return <div className="loading"><div className="spinner"></div> Loading dashboard...</div>;
 
   return (
@@ -365,9 +367,23 @@ function Dashboard({ events, members, userName, loading }) {
                     <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{ev.title}</div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
-                      {ev.start_time && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{ev.start_time}</span>}
+                      {ev.end_date && ev.end_date > ev.date
+                        ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Until {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+                        : ev.start_time && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{ev.start_time}</span>
+                      }
                       {ev.location && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{ev.location}</span>}
                     </div>
+                    {(ev.attendees || []).length > 0 && (
+                      <div style={{ display: 'flex', marginTop: 6 }}>
+                        {(ev.attendees || []).slice(0,4).map((id, i) => {
+                          const m = members.find(x => x.id === id);
+                          if (!m) return null;
+                          const color = MEMBER_COLORS[members.indexOf(m) % MEMBER_COLORS.length];
+                          const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                          return <div key={id} title={m.name} style={{ width: 20, height: 20, borderRadius: '50%', background: `${color}30`, border: '1.5px solid var(--bg)', color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, marginLeft: i > 0 ? -5 : 0 }}>{initials}</div>;
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -402,43 +418,96 @@ function Dashboard({ events, members, userName, loading }) {
 }
 
 /* ── Event Modal ── */
-function EventModal({ event, onSave, onDelete, onClose }) {
-  const [form, setForm] = useState(event);
+const MEMBER_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'];
+
+function EventModal({ event, onSave, onDelete, onClose, members }) {
+  const [form, setForm] = useState({ attendees: [], ...event });
   const [saving, setSaving] = useState(false);
   const isNew = !event.id;
+  const isMultiDay = !!(form.end_date && form.end_date !== form.date);
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    await onSave(form);
+    // If end_date is same as start or empty, clear it
+    const payload = { ...form, end_date: (form.end_date && form.end_date > form.date) ? form.end_date : null };
+    await onSave(payload);
     setSaving(false);
+  };
+
+  const toggleAttendee = (memberId) => {
+    const current = form.attendees || [];
+    setForm({ ...form, attendees: current.includes(memberId) ? current.filter(id => id !== memberId) : [...current, memberId] });
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}
       onClick={onClose}>
-      <div className="glass" style={{ padding: 28, maxWidth: 480, width: '100%' }} onClick={e => e.stopPropagation()}>
+      <div className="glass" style={{ padding: 28, maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600 }}>{isNew ? 'New Event' : 'Edit Event'}</h2>
           <button onClick={onClose} style={{ background: 'none', color: 'var(--text3)', padding: 4 }}><Icon d={Icons.x} size={18} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div><label className="label">Title</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="input" /></div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label className="label">Date</label><input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" /></div>
+            <div><label className="label">Start Date</label><input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="input" /></div>
+            <div>
+              <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                End Date
+                <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>(optional, for multi-day)</span>
+              </label>
+              <input type="date" value={form.end_date || ''} min={form.date}
+                onChange={e => setForm({...form, end_date: e.target.value || null})} className="input" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div><label className="label">Category</label>
               <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="input">
                 {Object.entries(CATEGORIES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
+            <div><label className="label">Location</label><input value={form.location || ''} onChange={e => setForm({...form, location: e.target.value})} className="input" /></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label className="label">Start Time</label><input type="time" value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} className="input" /></div>
-            <div><label className="label">End Time</label><input type="time" value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} className="input" /></div>
-          </div>
-          <div><label className="label">Location</label><input value={form.location || ''} onChange={e => setForm({...form, location: e.target.value})} className="input" /></div>
+
+          {!isMultiDay && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div><label className="label">Start Time</label><input type="time" value={form.start_time || ''} onChange={e => setForm({...form, start_time: e.target.value})} className="input" /></div>
+              <div><label className="label">End Time</label><input type="time" value={form.end_time || ''} onChange={e => setForm({...form, end_time: e.target.value})} className="input" /></div>
+            </div>
+          )}
+
           <div><label className="label">Description</label><textarea value={form.description || ''} onChange={e => setForm({...form, description: e.target.value})} rows={3} className="input" style={{ resize: 'vertical' }} /></div>
+
+          {members && members.length > 0 && (
+            <div>
+              <label className="label" style={{ marginBottom: 8 }}>Attendees</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {members.map((m, i) => {
+                  const selected = (form.attendees || []).includes(m.id);
+                  const color = MEMBER_COLORS[i % MEMBER_COLORS.length];
+                  const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                  return (
+                    <button key={m.id} onClick={() => toggleAttendee(m.id)} type="button"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 6px',
+                        borderRadius: 20, border: `1.5px solid ${selected ? color : 'var(--border)'}`,
+                        background: selected ? `${color}20` : 'transparent',
+                        color: selected ? color : 'var(--text2)', fontSize: 12, fontWeight: selected ? 600 : 400,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${color}30`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{initials}</div>
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
         <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
           {!isNew && (
             <button onClick={() => onDelete(form.id)}
@@ -457,7 +526,7 @@ function EventModal({ event, onSave, onDelete, onClose }) {
 }
 
 /* ── Calendar ── */
-function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEvent, memberId }) {
+function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEvent, memberId, members }) {
   const [current, setCurrent] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [modal, setModal] = useState(null); // null or event object
@@ -512,7 +581,18 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
   const getEventsForDay = (day) => {
     if (!day) return [];
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    return filteredEvents.filter(e => e.date === dateStr);
+    return filteredEvents.filter(e => {
+      const start = e.date;
+      const end = e.end_date || e.date;
+      return dateStr >= start && dateStr <= end;
+    });
+  };
+
+  // Returns true if this day is a continuation (not the start) of a multi-day event
+  const isSpanContinuation = (day, ev) => {
+    if (!day || !ev.end_date || ev.end_date <= ev.date) return false;
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    return dateStr > ev.date;
   };
 
   const isToday = (day) => day && today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
@@ -524,7 +604,7 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
 
   const openNew = () => {
     const d = selectedDate || `${year}-${String(month+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    setModal({ title: '', date: d, start_time: '09:00', end_time: '10:00', category: 'MEETING', description: '', location: '' });
+    setModal({ title: '', date: d, end_date: null, start_time: '09:00', end_time: '10:00', category: 'MEETING', description: '', location: '', attendees: [] });
   };
 
   const handleSave = async (ev) => {
@@ -541,7 +621,10 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
     setModal(null);
   };
 
-  const dayEvents = selectedDate ? filteredEvents.filter(e => e.date === selectedDate) : [];
+  const dayEvents = selectedDate ? filteredEvents.filter(e => {
+    const end = e.end_date || e.date;
+    return selectedDate >= e.date && selectedDate <= end;
+  }) : [];
 
   if (eventsLoading) return <div className="loading"><div className="spinner"></div> Loading calendar...</div>;
 
@@ -614,7 +697,19 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {dayEv.slice(0, 2).map(ev => {
                           const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
-                          return <div key={ev.id} style={{ fontSize: 10, padding: '1px 4px', borderRadius: 4, background: cat.bg, color: cat.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>;
+                          const isMulti = ev.end_date && ev.end_date > ev.date;
+                          const isCont = isSpanContinuation(day, ev);
+                          return (
+                            <div key={ev.id} style={{
+                              fontSize: 10, padding: '1px 4px', background: cat.bg, color: cat.color,
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              borderRadius: isMulti ? (isCont ? '0 4px 4px 0' : '4px 0 0 4px') : 4,
+                              borderLeft: isMulti && !isCont ? `2px solid ${cat.color}` : undefined,
+                              opacity: isCont ? 0.75 : 1,
+                            }}>
+                              {isCont ? '↳ ' : ''}{ev.title}
+                            </div>
+                          );
                         })}
                         {dayEv.length > 2 && <div style={{ fontSize: 10, color: 'var(--text3)' }}>+{dayEv.length - 2} more</div>}
                       </div>
@@ -638,15 +733,39 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {dayEvents.map(ev => {
                 const cat = CATEGORIES[ev.category] || CATEGORIES.OTHER;
+                const isMultiDay = ev.end_date && ev.end_date > ev.date;
+                const attendeeMembers = (ev.attendees || []).map(id => members.find(m => m.id === id)).filter(Boolean);
                 return (
-                  <div key={ev.id} className="glass-sm" style={{ padding: 14, cursor: 'pointer' }} onClick={() => setModal(ev)}>
+                  <div key={ev.id} className="glass-sm" style={{ padding: 14, cursor: 'pointer' }} onClick={() => setModal({ ...ev, attendees: ev.attendees || [] })}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <span style={{ fontWeight: 600, fontSize: 14 }}>{ev.title}</span>
                       <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: cat.bg, color: cat.color, fontWeight: 500, whiteSpace: 'nowrap' }}>{cat.label}</span>
                     </div>
-                    {ev.start_time && <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Icon d={Icons.clock} size={12} /> {ev.start_time}{ev.end_time ? ` – ${ev.end_time}` : ''}</div>}
+                    {isMultiDay && (
+                      <div style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                        <Icon d={Icons.calendar} size={12} color="var(--accent)" />
+                        {new Date(ev.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} – {new Date(ev.end_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                      </div>
+                    )}
+                    {!isMultiDay && ev.start_time && <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Icon d={Icons.clock} size={12} /> {ev.start_time}{ev.end_time ? ` – ${ev.end_time}` : ''}</div>}
                     {ev.location && <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}><Icon d={Icons.mapPin} size={12} /> {ev.location}</div>}
                     {ev.description && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>{ev.description}</div>}
+                    {attendeeMembers.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
+                        <div style={{ display: 'flex', marginRight: 4 }}>
+                          {attendeeMembers.slice(0, 5).map((m, i) => {
+                            const color = MEMBER_COLORS[members.indexOf(m) % MEMBER_COLORS.length];
+                            const initials = m.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                            return (
+                              <div key={m.id} title={m.name} style={{ width: 22, height: 22, borderRadius: '50%', background: `${color}30`, border: `1.5px solid var(--bg)`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, marginLeft: i > 0 ? -6 : 0 }}>{initials}</div>
+                            );
+                          })}
+                        </div>
+                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                          {attendeeMembers.length === 1 ? attendeeMembers[0].name : `${attendeeMembers.length} attendees`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -659,7 +778,7 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
         )}
       </div>
 
-      {modal && <EventModal event={modal} onSave={handleSave} onDelete={handleDelete} onClose={() => setModal(null)} />}
+      {modal && <EventModal event={modal} onSave={handleSave} onDelete={handleDelete} onClose={() => setModal(null)} members={members} />}
     </div>
   );
 }
@@ -736,7 +855,7 @@ function App() {
 
       <main className="main-content" style={{ flex: 1, marginLeft: 240, padding: 32 }}>
         {page === 'dashboard' && <Dashboard events={events} members={members} userName={user.name} loading={eventsLoading} />}
-        {page === 'calendar' && <CalendarView events={events} eventsLoading={eventsLoading} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} memberId={user.memberId} />}
+        {page === 'calendar' && <CalendarView events={events} eventsLoading={eventsLoading} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} memberId={user.memberId} members={members} />}
       </main>
     </div>
   );
