@@ -83,7 +83,24 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  // Security: open for now — add POSTMARK_WEBHOOK_TOKEN env var in Vercel later to lock down
+  // ── Security: validate via HTTP Basic Auth or X-Webhook-Token header ──
+  const expectedToken = process.env.POSTMARK_WEBHOOK_TOKEN;
+  if (expectedToken) {
+    const authHeader = req.headers['authorization'] || '';
+    let basicToken = null;
+    if (authHeader.startsWith('Basic ')) {
+      try {
+        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
+        basicToken = decoded.split(':')[1];
+      } catch {}
+    }
+    const headerToken = req.headers['x-webhook-token'];
+    const receivedToken = basicToken || headerToken;
+    if (!receivedToken || receivedToken !== expectedToken) {
+      console.warn('inbound-email: rejected — invalid or missing auth token');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
 
   // ── Parse Postmark payload ──
   const payload = await readBody(req);
