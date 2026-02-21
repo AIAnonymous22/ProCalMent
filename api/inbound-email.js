@@ -83,21 +83,14 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── Security: validate via HTTP Basic Auth or X-Webhook-Token header ──
+  // ── Security: validate token via query param (survives redirects) ──
+  // Postmark webhook URL: https://procalment.com/api/inbound-email?token=SECRET
   const expectedToken = process.env.POSTMARK_WEBHOOK_TOKEN;
   if (expectedToken) {
-    const authHeader = req.headers['authorization'] || '';
-    let basicToken = null;
-    if (authHeader.startsWith('Basic ')) {
-      try {
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf-8');
-        basicToken = decoded.split(':')[1];
-      } catch {}
-    }
-    const headerToken = req.headers['x-webhook-token'];
-    const receivedToken = basicToken || headerToken;
-    if (!receivedToken || receivedToken !== expectedToken) {
-      console.warn('inbound-email: rejected — invalid or missing auth token');
+    const url = new URL(req.url, `https://${req.headers.host}`);
+    const queryToken = url.searchParams.get('token');
+    if (!queryToken || queryToken !== expectedToken) {
+      console.warn('inbound-email: rejected — invalid or missing token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
   }
