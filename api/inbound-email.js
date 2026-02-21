@@ -55,7 +55,7 @@ function parseICS(text) {
       end_time:    end.time   || null,
       category,
       location:    location || null,
-      created_by:  'email-inbound',
+      created_by:  null,
     });
   }
   return events;
