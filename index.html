@@ -897,24 +897,24 @@ function CalendarView({ events, eventsLoading, addEvent, updateEvent, deleteEven
                           const singleDayEvs=day?filteredEvents.filter(e=>{ const isM=e.end_date&&e.end_date>e.date; return !isM&&e.date===ds; }):[];
                           const dayTaskDots=day?(tasksByDate[ds]||[]):[];
                           return (
-                            <div key={ci} onClick={()=>handleDayClick(day)} style={{ minHeight:CELL_HEIGHT+extraHeight, padding:6, borderRadius:10, cursor:day?'pointer':'default', background:isSelected?'rgba(59,130,246,0.18)':isToday(day)?'rgba(59,130,246,0.08)':'transparent', border:isSelected?'1px solid rgba(59,130,246,0.35)':'1px solid transparent', transition:'all 0.15s' }}>
+                            <div key={ci} onClick={()=>handleDayClick(day)} style={{ minHeight:CELL_HEIGHT+extraHeight, padding:6, borderRadius:10, cursor:day?'pointer':'default', background:isSelected?'rgba(59,130,246,0.18)':isToday(day)?'rgba(59,130,246,0.08)':'transparent', border:isSelected?'1px solid rgba(59,130,246,0.35)':'1px solid transparent', transition:'all 0.15s', overflow:'hidden', minWidth:0 }}>
                               {day && (
                                 <>
-                                  <div style={{ fontSize:13, fontWeight:isToday(day)?700:400, color:isToday(day)?'var(--accent)':'var(--text)', marginBottom:maxLane>0?BAR_TOP_OFFSET-18+extraHeight:4 }}>{day}</div>
-                                  <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                                    {singleDayEvs.slice(0,2).map(ev=>{ const cat=CATEGORIES[ev.category]||CATEGORIES.OTHER; return <div key={ev.id} style={{ fontSize:10, padding:'1px 4px', borderRadius:4, background:cat.bg, color:cat.color, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>; })}
+                                  <div style={{ fontSize:13, fontWeight:isToday(day)?700:400, color:isToday(day)?'var(--accent)':'var(--text)', marginBottom:maxLane>0?BAR_TOP_OFFSET-18+extraHeight:4, flexShrink:0 }}>{day}</div>
+                                  <div style={{ display:'flex', flexDirection:'column', gap:2, minWidth:0, width:'100%' }}>
+                                    {singleDayEvs.slice(0,2).map(ev=>{ const cat=CATEGORIES[ev.category]||CATEGORIES.OTHER; return <div key={ev.id} style={{ fontSize:10, padding:'1px 4px', borderRadius:4, background:cat.bg, color:cat.color, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>{ev.title}</div>; })}
                                     {singleDayEvs.length>2&&<div style={{ fontSize:10, color:'var(--text3)' }}>+{singleDayEvs.length-2} more</div>}
                                   </div>
                                   {/* Task labels */}
                                   {dayTaskDots.length > 0 && (
-                                    <div style={{ display:'flex', flexDirection:'column', gap:2, marginTop:2 }}>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:2, marginTop:2, minWidth:0, width:'100%' }}>
                                       {dayTaskDots.slice(0,2).map((t,i)=>{
                                         const isDone=t.status==='DONE';
                                         const tc=TASK_STATUSES[t.status]?.color||'#94a3b8';
                                         return (
-                                          <div key={t.id} title={t.title} style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, padding:'1px 4px', borderRadius:4, background:`${tc}18`, border:`1px solid ${tc}40` }}>
+                                          <div key={t.id} title={t.title} style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, padding:'1px 4px', borderRadius:4, background:`${tc}18`, border:`1px solid ${tc}40`, minWidth:0, overflow:'hidden' }}>
                                             <div style={{ width:6, height:6, borderRadius:'50%', border:`1.5px solid ${tc}`, background:isDone?tc:'transparent', flexShrink:0 }} />
-                                            <span style={{ color:tc, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textDecoration:isDone?'line-through':'none', maxWidth:60 }}>{t.title}</span>
+                                            <span style={{ color:tc, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', textDecoration:isDone?'line-through':'none', flex:1, minWidth:0 }}>{t.title}</span>
                                           </div>
                                         );
                                       })}
