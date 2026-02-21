@@ -105,18 +105,26 @@ module.exports = async function handler(req, res) {
   const subject = payload.Subject || '(no subject)';
   console.log(`inbound-email: received from=${from} subject="${subject}"`);
 
+  // Debug: log all attachment names and content types
+  const attachments = payload.Attachments || [];
+  console.log(`inbound-email: ${attachments.length} attachment(s):`,
+    attachments.map(a => `${a.Name} (${a.ContentType})`).join(', ') || 'none');
+  console.log(`inbound-email: TextBody length=${(payload.TextBody||'').length}, HtmlBody length=${(payload.HtmlBody||'').length}`);
+  console.log(`inbound-email: TextBody preview=`, (payload.TextBody||'').slice(0, 200));
+
   // ── Extract .ics content ──
   let icsText = null;
 
   // 1. Check attachments first (most reliable)
-  const attachments = payload.Attachments || [];
   for (const att of attachments) {
     const name = (att.Name || '').toLowerCase();
     const type = (att.ContentType || '').toLowerCase();
+    console.log(`inbound-email: checking attachment name="${name}" type="${type}"`);
     if (name.endsWith('.ics') || type.includes('calendar') || type.includes('ics')) {
       try {
         icsText = Buffer.from(att.Content, 'base64').toString('utf-8');
-        console.log(`inbound-email: found .ics attachment "${att.Name}"`);
+        console.log(`inbound-email: found .ics attachment "${att.Name}", decoded length=${icsText.length}`);
+        console.log(`inbound-email: ICS preview=`, icsText.slice(0, 300));
         break;
       } catch (e) {
         console.error('inbound-email: failed to decode attachment', e);
